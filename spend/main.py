@@ -25,8 +25,18 @@ def do_show_producer(db, slug):
         print(f'Producer {slug} not found.')
 
 
+def do_update_producer(db, slug):
+    """Input name of producer with slug and update it in the database."""
+    producer = db.select_producer(slug)
+    if producer is not None:
+        name = input(f"Enter new name for {slug}: ")
+        db.update_producer(slug, name)
+    else:
+        print(f'Producer {slug} not found.')
+
+
 def do_delete_producer(db, slug):
-    """Delete producerd <slug> from the database."""
+    """Delete producer <slug> from the database."""
     db.delete_producer(slug)
 
 
@@ -70,6 +80,13 @@ ON producers(slug)"""
         values = (slug, )
         res = self.con.execute(sql, values)
         return res.fetchone()
+    
+
+    def update_producer(self, slug, name):
+        sql = "UPDATE producers SET name = ? WHERE slug = ?"
+        values = (name, slug)
+        self.con.execute(sql, values)
+        self.con.commit()
 
 
     def delete_producer(self, slug):
@@ -117,6 +134,12 @@ class SpendShell(cmd.Cmd):
                 else:
                     slug = args[1]
                     do_show_producer(self.db, slug)
+            elif subcommand == "update":
+                if len(args) != 2:
+                    print("usage: producer update <slug>")
+                else:
+                    slug = args[1]
+                    do_update_producer(self.db, slug)
             elif subcommand == "delete":
                 if len(args) != 2:
                     print("usage: producer delete <slug>")
