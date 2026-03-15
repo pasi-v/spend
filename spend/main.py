@@ -40,7 +40,7 @@ def do_delete_producer(db, slug):
     db.delete_producer(slug)
 
 
-class Database():
+class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
         self.con.row_factory = sqlite3.Row
@@ -92,7 +92,7 @@ ON producers(slug)"""
     def delete_producer(self, slug):
         sql = "DELETE FROM producers WHERE slug = ?"
         values = (slug, )
-        res = self.con.execute(sql, values)
+        self.con.execute(sql, values)
         self.con.commit()
 
 
@@ -111,7 +111,7 @@ class SpendShell(cmd.Cmd):
         self.db = db
 
     def do_producer(self, arg):
-        "Add, list, show, delete or update producer."
+        """Add, list, show, delete or update producer."""
         args = shlex.split(arg)
         if len(args) < 1:
             print("usage: producer [add|list|show|delete|update]")
@@ -149,16 +149,18 @@ class SpendShell(cmd.Cmd):
             else:
                 print("not implemented yet")
 
-    def do_quit(self, arg):
-        "Stop spending and exit."
+    @staticmethod
+    def do_quit(_):
+        """Stop spending and exit."""
         return True
 
-    def do_exit(self, arg):
-        "Stop spending and exit."
+    @staticmethod
+    def do_exit(_):
+        """Stop spending and exit."""
         return True
 
 
 if __name__ == "__main__":
-    db = Database("spend.db")
-    SpendShell(db).cmdloop()
-    db.close()
+    database = Database("spend.db")
+    SpendShell(database).cmdloop()
+    database.close()
