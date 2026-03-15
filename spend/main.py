@@ -14,6 +14,16 @@ def do_list_producers(db):
     for producer in producers:
         print(f'{producer["slug"]}: {producer["name"]}')
 
+
+def do_show_producer(db, slug):
+    """Show details of one producer in the database."""
+    producer = db.select_producer(slug)
+    if producer is not None:
+        print(f'{producer["slug"]}: {producer["name"]}')
+    else:
+        print(f'Producer {slug} not found.')
+
+
 class Database():
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -28,6 +38,7 @@ producer_id INTEGER PRIMARY KEY AUTOINCREMENT,
 slug TEXT UNIQUE,
 name TEXT
 )"""
+        # TODO: Add index for slug
         self.cur.execute(sql)
 
 
@@ -42,6 +53,14 @@ name TEXT
         sql = "SELECT slug, name FROM producers"
         res = self.con.execute(sql)
         return res.fetchall()
+    
+
+    def select_producer(self, slug):
+        sql = "SELECT slug, name FROM producers WHERE slug = ?"
+        values = (slug, )
+        res = self.con.execute(sql, values)
+        return res.fetchone()
+
 
     def close(self):
         self.con.close()
@@ -75,6 +94,12 @@ class SpendShell(cmd.Cmd):
                     do_add_producer(self.db, slug, name)
             elif subcommand == "list":
                 do_list_producers(self.db)
+            elif subcommand == "show":
+                if len(args) != 2:
+                    print("usage: producer show <slug>")
+                else:
+                    slug = args[1]
+                    do_show_producer(self.db, slug)
             else:
                 print("not implemented yet")
 
