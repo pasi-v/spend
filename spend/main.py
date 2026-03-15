@@ -25,6 +25,11 @@ def do_show_producer(db, slug):
         print(f'Producer {slug} not found.')
 
 
+def do_delete_producer(db, slug):
+    """Delete producerd <slug> from the database."""
+    db.delete_producer(slug)
+
+
 class Database():
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -61,6 +66,13 @@ name TEXT
         values = (slug, )
         res = self.con.execute(sql, values)
         return res.fetchone()
+
+
+    def delete_producer(self, slug):
+        sql = "DELETE FROM producers WHERE slug = ?"
+        values = (slug, )
+        res = self.con.execute(sql, values)
+        self.con.commit()
 
 
     def close(self):
@@ -101,6 +113,12 @@ class SpendShell(cmd.Cmd):
                 else:
                     slug = args[1]
                     do_show_producer(self.db, slug)
+            elif subcommand == "delete":
+                if len(args) != 2:
+                    print("usage: producer delete <slug>")
+                else:
+                    slug = args[1]
+                    do_delete_producer(self.db, slug)
             else:
                 print("not implemented yet")
 
