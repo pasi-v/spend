@@ -1,5 +1,6 @@
 import cmd
 import sqlite3
+import shlex
 
 
 def do_add_producer(db, slug, name):
@@ -78,7 +79,7 @@ class SpendShell(cmd.Cmd):
 
     def do_producer(self, arg):
         "Add, list, show, delete or update producer."
-        args = arg.split()
+        args = shlex.split(arg)
         if len(args) < 1:
             print("usage: producer [add|list|show|delete|update]")
         subcommand = args[0].lower()
