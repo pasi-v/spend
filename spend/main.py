@@ -44,7 +44,11 @@ producer_id INTEGER PRIMARY KEY AUTOINCREMENT,
 slug TEXT UNIQUE,
 name TEXT
 )"""
-        # TODO: Add index for slug
+
+        self.cur.execute(sql)
+        sql = """
+CREATE INDEX IF NOT EXISTS idx_producers_slug 
+ON producers(slug)"""
         self.cur.execute(sql)
 
 
