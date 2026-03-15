@@ -2,16 +2,22 @@ import cmd
 import sqlite3
 
 
-
 def do_add_producer(db, slug, name):
     """Add producer to the database."""
     print(f"Adding {slug} to database and setting name={name}")
     db.insert_producer(slug, name)
 
 
+def do_list_producers(db):
+    """List all producers in the database."""
+    producers = db.select_producers()
+    for producer in producers:
+        print(f'{producer["slug"]}: {producer["name"]}')
+
 class Database():
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
+        self.con.row_factory = sqlite3.Row
         self.cur = self.con.cursor()
         self.ensure_producers()
 
@@ -31,6 +37,11 @@ name TEXT
         self.con.execute(sql, values)
         self.con.commit()
 
+
+    def select_producers(self):
+        sql = "SELECT slug, name FROM producers"
+        res = self.con.execute(sql)
+        return res.fetchall()
 
     def close(self):
         self.con.close()
@@ -62,6 +73,8 @@ class SpendShell(cmd.Cmd):
                     slug = args[1]
                     name = args[2]
                     do_add_producer(self.db, slug, name)
+            elif subcommand == "list":
+                do_list_producers(self.db)
             else:
                 print("not implemented yet")
 
