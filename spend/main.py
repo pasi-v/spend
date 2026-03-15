@@ -5,7 +5,11 @@ class SpendShell(cmd.Cmd):
     prompt = "(spend) "
 
     def do_quit(self, arg):
-        'Stop spending, and exit.'
+        'Stop spending and exit.'
+        return True
+
+    def do_exit(self, arg):
+        'Stop spending and exit.'
         return True
 
 if __name__ == '__main__':
