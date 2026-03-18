@@ -40,6 +40,21 @@ def do_delete_producer(db, slug):
     db.delete_producer(slug)
 
 
+def do_add_product(db: Database, product_slug: str, name: str, producer_slug: str=None):
+    """Add product <slug> to the database and link to producer if producer_slug provided."""
+    print(f"Adding {product_slug} to database and setting name={name}, producer_slug={producer_slug}")
+    producer_id = None
+    if producer_slug:
+        producer = db.select_producer(producer_slug)
+        if producer is not None:
+            producer_id = producer["producer_id"]
+        else:
+            print(f"Producer {producer_slug} not found")
+            return
+
+    db.insert_product(product_slug, name, producer_id)
+
+
 class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -79,7 +94,7 @@ ON producers(slug)"""
     
 
     def select_producer(self, slug):
-        sql = "SELECT slug, name FROM producers WHERE slug = ?"
+        sql = "SELECT producer_id, slug, name FROM producers WHERE slug = ?"
         values = (slug, )
         res = self.con.execute(sql, values)
         return res.fetchone()
@@ -116,6 +131,13 @@ ON products(slug)"""
         self.cur.execute(sql)
 
 
+    def insert_product(self, product_slug, product_name, producer_id=None):
+        sql = "INSERT INTO products (slug, name, producer_id) VALUES (?, ?, ?)"
+        values = (product_slug.lower(), product_name, producer_id)
+        self.con.execute(sql, values)
+        self.con.commit()
+
+
     def close(self):
         self.con.close()
 
@@ -135,39 +157,66 @@ class SpendShell(cmd.Cmd):
         args = shlex.split(arg)
         if len(args) < 1:
             print("usage: producer [add|list|show|delete|update]")
-        subcommand = args[0].lower()
-        if subcommand not in ("add", "list", "show", "delete", "update"):
-            print("usage: producer [add|list|show|delete|update]")
+            return
         else:
-            if subcommand == "add":
-                if len(args) != 3:
-                    print("usage: producer add <slug> <name>")
-                else:
-                    slug = args[1]
-                    name = args[2]
-                    do_add_producer(self.db, slug, name)
-            elif subcommand == "list":
-                do_list_producers(self.db)
-            elif subcommand == "show":
-                if len(args) != 2:
-                    print("usage: producer show <slug>")
-                else:
-                    slug = args[1]
-                    do_show_producer(self.db, slug)
-            elif subcommand == "update":
-                if len(args) != 2:
-                    print("usage: producer update <slug>")
-                else:
-                    slug = args[1]
-                    do_update_producer(self.db, slug)
-            elif subcommand == "delete":
-                if len(args) != 2:
-                    print("usage: producer delete <slug>")
-                else:
-                    slug = args[1]
-                    do_delete_producer(self.db, slug)
+            subcommand = args[0].lower()
+            if subcommand not in ("add", "list", "show", "delete", "update"):
+                print("usage: producer [add|list|show|delete|update]")
             else:
-                print("not implemented yet")
+                if subcommand == "add":
+                    if len(args) != 3:
+                        print("usage: producer add <slug> <name>")
+                    else:
+                        slug = args[1]
+                        name = args[2]
+                        do_add_producer(self.db, slug, name)
+                elif subcommand == "list":
+                    do_list_producers(self.db)
+                elif subcommand == "show":
+                    if len(args) != 2:
+                        print("usage: producer show <slug>")
+                    else:
+                        slug = args[1]
+                        do_show_producer(self.db, slug)
+                elif subcommand == "update":
+                    if len(args) != 2:
+                        print("usage: producer update <slug>")
+                    else:
+                        slug = args[1]
+                        do_update_producer(self.db, slug)
+                elif subcommand == "delete":
+                    if len(args) != 2:
+                        print("usage: producer delete <slug>")
+                    else:
+                        slug = args[1]
+                        do_delete_producer(self.db, slug)
+                else:
+                    print("not implemented yet")
+
+    def do_product(self, arg):
+        """Add, list, show, delete or update product."""
+        args = shlex.split(arg)
+        if len(args) < 1:
+            print("usage: product [add|list|show|delete|update]")
+            return
+        else:
+            subcommand = args[0].lower()
+            if subcommand not in ("add", "list", "show", "delete", "update"):
+                print("usage: product [add|list|show|delete|update]")
+            else:
+                if subcommand == "add":
+                    if len(args) < 3:
+                        print("usage: product add <slug> <name> <producer_slug>")
+                        return
+
+                    product_slug = args[1]
+                    product_name = args[2]
+                    producer_slug = None
+                    if len(args) >= 3:
+                        producer_slug = args[3]
+                    do_add_product(self.db, product_slug, product_name, producer_slug)
+                else:
+                    print("not implemented yet")
 
     @staticmethod
     def do_quit(_):
