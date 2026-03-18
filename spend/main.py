@@ -62,6 +62,15 @@ def do_list_products(db: Database):
         print(f'{product["slug"]}: {product["name"]}')
 
 
+def do_show_product(db: Database, slug: str):
+    """Show details of one product in the database."""
+    product = db.select_product(slug)
+    if product is not None:
+        print(f'{product["slug"]}: {product["name"]}')
+    else:
+        print(f'Product {slug} not found.')
+
+
 class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -151,6 +160,13 @@ ON products(slug)"""
         return res.fetchall()
 
 
+    def select_product(self, slug):
+        sql = "SELECT product_id, slug, name FROM products WHERE slug = ?"
+        values = (slug,)
+        res = self.con.execute(sql, values)
+        return res.fetchone()
+
+
     def close(self):
         self.con.close()
 
@@ -231,6 +247,12 @@ class SpendShell(cmd.Cmd):
                 do_add_product(self.db, product_slug, product_name, producer_slug)
             elif subcommand == "list":
                 do_list_products(self.db)
+            elif subcommand == "show":
+                if len(args) != 2:
+                    print("usage: product show <slug>")
+                else:
+                    slug = args[1]
+                    do_show_product(self.db, slug)
             else:
                 print("not implemented yet")
 
