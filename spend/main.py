@@ -43,9 +43,12 @@ def do_delete_producer(db, slug):
 class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
+        self.con.execute("PRAGMA foreign_keys = 1")
         self.con.row_factory = sqlite3.Row
         self.cur = self.con.cursor()
         self.ensure_producers()
+        self.ensure_products()
+
 
     def ensure_producers(self):
         sql = """
@@ -94,6 +97,23 @@ ON producers(slug)"""
         values = (slug, )
         self.con.execute(sql, values)
         self.con.commit()
+
+
+    def ensure_products(self):
+        sql = """
+CREATE TABLE IF NOT EXISTS products
+(
+    product_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT UNIQUE,
+    name        TEXT,
+    producer_id INTEGER,
+    FOREIGN KEY(producer_id) REFERENCES producers(producer_id) ON DELETE RESTRICT
+)"""
+        self.cur.execute(sql)
+        sql = """
+CREATE INDEX IF NOT EXISTS idx_products_slug 
+ON products(slug)"""
+        self.cur.execute(sql)
 
 
     def close(self):
