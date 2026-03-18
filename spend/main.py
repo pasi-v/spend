@@ -71,6 +71,11 @@ def do_show_product(db: Database, slug: str):
         print(f'Product {slug} not found.')
 
 
+def do_delete_product(db: Database, slug):
+    """Delete product <slug> from the database."""
+    db.delete_product(slug)
+
+
 class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -167,6 +172,13 @@ ON products(slug)"""
         return res.fetchone()
 
 
+    def delete_product(self, slug):
+        sql = "DELETE FROM products WHERE slug = ?"
+        values = (slug, )
+        self.con.execute(sql, values)
+        self.con.commit()
+
+
     def close(self):
         self.con.close()
 
@@ -177,7 +189,7 @@ class SpendShell(cmd.Cmd):
     )
     prompt = "(spend) "
 
-    def __init__(self, db):
+    def __init__(self, db: Database):
         super().__init__()
         self.db = db
 
@@ -250,9 +262,15 @@ class SpendShell(cmd.Cmd):
             elif subcommand == "show":
                 if len(args) != 2:
                     print("usage: product show <slug>")
-                else:
-                    slug = args[1]
-                    do_show_product(self.db, slug)
+                    return
+                slug = args[1]
+                do_show_product(self.db, slug)
+            elif subcommand == "delete":
+                if len(args) != 2:
+                    print("usage: product delete <slug>")
+                    return
+                slug = args[1]
+                do_delete_product(self.db, slug)
             else:
                 print("not implemented yet")
 
