@@ -55,6 +55,13 @@ def do_add_product(db: Database, product_slug: str, name: str, producer_slug: st
     db.insert_product(product_slug, name, producer_id)
 
 
+def do_list_products(db: Database):
+    """List all products in the database."""
+    products = db.select_products()
+    for product in products:
+        print(f'{product["slug"]}: {product["name"]}')
+
+
 class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -138,6 +145,12 @@ ON products(slug)"""
         self.con.commit()
 
 
+    def select_products(self):
+        sql = "SELECT slug, name FROM products"
+        res = self.con.execute(sql)
+        return res.fetchall()
+
+
     def close(self):
         self.con.close()
 
@@ -203,20 +216,23 @@ class SpendShell(cmd.Cmd):
             subcommand = args[0].lower()
             if subcommand not in ("add", "list", "show", "delete", "update"):
                 print("usage: product [add|list|show|delete|update]")
-            else:
-                if subcommand == "add":
-                    if len(args) < 3:
-                        print("usage: product add <slug> <name> <producer_slug>")
-                        return
+                return
 
-                    product_slug = args[1]
-                    product_name = args[2]
-                    producer_slug = None
-                    if len(args) >= 3:
-                        producer_slug = args[3]
-                    do_add_product(self.db, product_slug, product_name, producer_slug)
-                else:
-                    print("not implemented yet")
+            if subcommand == "add":
+                if len(args) < 3:
+                    print("usage: product add <slug> <name> <producer_slug>")
+                    return
+
+                product_slug = args[1]
+                product_name = args[2]
+                producer_slug = None
+                if len(args) >= 3:
+                    producer_slug = args[3]
+                do_add_product(self.db, product_slug, product_name, producer_slug)
+            elif subcommand == "list":
+                do_list_products(self.db)
+            else:
+                print("not implemented yet")
 
     @staticmethod
     def do_quit(_):
