@@ -71,6 +71,26 @@ def do_show_product(db: Database, slug: str):
         print(f'Product {slug} not found.')
 
 
+def do_update_product(db: Database, slug: str):
+    """Input name of product with slug and update it in the database."""
+    product = db.select_product(slug)
+    if product is None:
+        print(f'Product {slug} not found.')
+        return
+
+    producer_id = None
+    name = input(f"Enter new name for {slug}: ")
+    producer_slug = input(f"Enter new producer slug (empty to set null): ").strip()
+    if producer_slug != "":
+        producer = db.select_producer(producer_slug)
+        if producer is None:
+            print(f"Producer {producer_slug} not found.")
+            return
+        producer_id = producer["producer_id"]
+
+    db.update_product(slug, name, producer_id)
+
+
 def do_delete_product(db: Database, slug):
     """Delete product <slug> from the database."""
     db.delete_product(slug)
@@ -116,21 +136,21 @@ ON producers(slug)"""
 
     def select_producer(self, slug):
         sql = "SELECT producer_id, slug, name FROM producers WHERE slug = ?"
-        values = (slug, )
+        values = (slug.lower(), )
         res = self.con.execute(sql, values)
         return res.fetchone()
     
 
     def update_producer(self, slug, name):
         sql = "UPDATE producers SET name = ? WHERE slug = ?"
-        values = (name, slug)
+        values = (name, slug.lower())
         self.con.execute(sql, values)
         self.con.commit()
 
 
     def delete_producer(self, slug):
         sql = "DELETE FROM producers WHERE slug = ?"
-        values = (slug, )
+        values = (slug.lower(), )
         self.con.execute(sql, values)
         self.con.commit()
 
@@ -167,14 +187,21 @@ ON products(slug)"""
 
     def select_product(self, slug):
         sql = "SELECT product_id, slug, name FROM products WHERE slug = ?"
-        values = (slug,)
+        values = (slug.lower(),)
         res = self.con.execute(sql, values)
         return res.fetchone()
 
 
+    def update_product(self, slug: str, name: str, producer_id: int):
+        sql = "UPDATE products SET name = ?, producer_id = ? WHERE slug = ?"
+        values = (name, producer_id, slug.lower())
+        self.con.execute(sql, values)
+        self.con.commit()
+
+
     def delete_product(self, slug):
         sql = "DELETE FROM products WHERE slug = ?"
-        values = (slug, )
+        values = (slug.lower(), )
         self.con.execute(sql, values)
         self.con.commit()
 
@@ -265,6 +292,14 @@ class SpendShell(cmd.Cmd):
                     return
                 slug = args[1]
                 do_show_product(self.db, slug)
+
+            elif subcommand == "update":
+                if len(args) != 2:
+                    print("usage: product update <slug>")
+                    return
+                slug = args[1]
+                do_update_product(self.db, slug)
+
             elif subcommand == "delete":
                 if len(args) != 2:
                     print("usage: product delete <slug>")
