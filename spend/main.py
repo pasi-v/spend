@@ -102,6 +102,13 @@ def do_add_store(db: Database, slug: str, name: str):
     db.insert_store(slug, name)
 
 
+def do_list_stores(db: Database):
+    """List all stores in the database."""
+    stores = db.select_stores()
+    for store in stores:
+        print(f'{store["slug"]}: {store["name"]}')
+
+
 class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -242,6 +249,12 @@ ON stores(slug)"""
         self.con.commit()
 
 
+    def select_stores(self):
+        sql = "SELECT slug, name FROM STORES"
+        res = self.con.execute(sql)
+        return res.fetchall()
+
+
     def close(self):
         self.con.close()
 
@@ -364,6 +377,8 @@ class SpendShell(cmd.Cmd):
             slug = args[1]
             name = args[2]
             do_add_store(self.db, slug, name)
+        elif subcommand == "list":
+            do_list_stores(self.db)
         else:
             print("not implemented yet")
 
