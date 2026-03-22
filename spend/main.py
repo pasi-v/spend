@@ -66,7 +66,7 @@ def do_show_product(db: Database, slug: str):
     """Show details of one product in the database."""
     product = db.select_product(slug)
     if product is not None:
-        print(f'{product["slug"]}: {product["name"]}')
+        print(f'{product["product_slug"]}: {product["product_name"]}, producer: {product["producer_slug"]}')
     else:
         print(f'Product {slug} not found.')
 
@@ -186,7 +186,14 @@ ON products(slug)"""
 
 
     def select_product(self, slug):
-        sql = "SELECT product_id, slug, name FROM products WHERE slug = ?"
+        sql = """
+SELECT product_id
+     , products.slug AS product_slug
+     , products.name AS product_name
+     , producers.slug AS producer_slug
+     , producers.name AS producer_name
+FROM products LEFT JOIN producers ON products.producer_id = producers.producer_id
+WHERE products.slug = ?"""
         values = (slug.lower(),)
         res = self.con.execute(sql, values)
         return res.fetchone()
