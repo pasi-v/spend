@@ -96,6 +96,12 @@ def do_delete_product(db: Database, slug):
     db.delete_product(slug)
 
 
+def do_add_store(db: Database, slug: str, name: str):
+    """Add store to the database."""
+    print(f"Adding {slug} to database and setting name={name}")
+    db.insert_store(slug, name)
+
+
 class Database:
     def __init__(self, dbname):
         self.con = sqlite3.connect(dbname)
@@ -104,6 +110,7 @@ class Database:
         self.cur = self.con.cursor()
         self.ensure_producers()
         self.ensure_products()
+        self.ensure_stores()
 
 
     def ensure_producers(self):
@@ -213,6 +220,28 @@ WHERE products.slug = ?"""
         self.con.commit()
 
 
+    def ensure_stores(self):
+        sql = """
+CREATE TABLE IF NOT EXISTS stores (
+store_id INTEGER PRIMARY KEY AUTOINCREMENT,
+slug TEXT UNIQUE,
+name TEXT
+)"""
+
+        self.cur.execute(sql)
+        sql = """
+CREATE INDEX IF NOT EXISTS idx_stores_slug 
+ON stores(slug)"""
+        self.cur.execute(sql)
+
+
+    def insert_store(self, slug: str, name:str):
+        sql = "INSERT INTO stores (slug, name) VALUES (?, ?)"
+        values = (slug.lower(), name)
+        self.con.execute(sql, values)
+        self.con.commit()
+
+
     def close(self):
         self.con.close()
 
@@ -315,6 +344,28 @@ class SpendShell(cmd.Cmd):
                 do_delete_product(self.db, slug)
             else:
                 print("not implemented yet")
+
+    def do_store(self, arg):
+        """Add, list, show, delete or update store."""
+        args = shlex.split(arg)
+        if len(args) < 1:
+            print("usage: store [add|list|show|delete|update]")
+            return
+
+        subcommand = args[0].lower()
+        if subcommand not in ("add", "list", "show", "delete", "update"):
+            print("usage: store [add|list|show|delete|update]")
+            return
+        if subcommand == "add":
+            if len(args) < 3:
+                print("usage: store add <slug> <name>")
+                return
+
+            slug = args[1]
+            name = args[2]
+            do_add_store(self.db, slug, name)
+        else:
+            print("not implemented yet")
 
     @staticmethod
     def do_quit(_):

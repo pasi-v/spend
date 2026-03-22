@@ -1,8 +1,8 @@
 # TODO
 
-- Add CRUD for products:
+- Add CRUD for stores:
     1. Design table structure.
-    2. Create table with relation to producer, and index for product slug.
+    2. Create table, and index for store slug.
     3. `add` command.
     4. `list` command.
     5. `show` command.
