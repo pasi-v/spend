@@ -29,6 +29,12 @@ def select_store(conn, slug: str):
     return res.fetchone()
 
 
+def update_store(conn, slug, name):
+    sql = "UPDATE stores SET name = ? WHERE slug = ?"
+    values = (name, slug.lower())
+    conn.execute(sql, values)
+
+
 def do_add_store(conn, slug: str, name: str):
     """Add store to the database."""
     print(f"Adding {slug} to database and setting name={name}")
@@ -49,3 +55,13 @@ def do_show_store(conn, slug: str):
         print(f'{store["slug"]}: {store["name"]}')
     else:
         print(f'{store["slug"]} not found.')
+
+
+def do_update_store(conn, slug: str):
+    """Input name of store with slug and update it in the database."""
+    store = select_store(conn, slug)
+    if store is not None:
+        name = input(f"Enter new name for {slug}: ")
+        update_store(conn, slug, name)
+    else:
+        print(f'Store {slug} not found.')

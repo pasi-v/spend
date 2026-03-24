@@ -137,6 +137,13 @@ class SpendShell(cmd.Cmd):
             slug = args[1]
             stores.do_show_store(self.conn, slug)
 
+        elif subcommand == "update":
+            if len(args) != 2:
+                print("usage: store update <slug>")
+                return
+            slug = args[1]
+            run_tx(self.conn, stores.do_update_store, slug)
+
         else:
             print("not implemented yet")
 
