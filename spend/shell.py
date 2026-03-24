@@ -108,6 +108,15 @@ def do_list_stores(db: Database):
         print(f'{store["slug"]}: {store["name"]}')
 
 
+def do_show_store(db: Database, slug: str):
+    """Show one store identified by slug."""
+    store = db.select_store(slug)
+    if store is not None:
+        print(f'{store["slug"]}: {store["name"]}')
+    else:
+        print(f'{store["slug"]} not found.')
+
+
 class SpendShell(cmd.Cmd):
     intro = (
         "Welcome to spend your hard-earned money.  Type help or ? to list commands.\n"
@@ -228,6 +237,13 @@ class SpendShell(cmd.Cmd):
             do_add_store(self.db, slug, name)
         elif subcommand == "list":
             do_list_stores(self.db)
+        elif subcommand == "show":
+            if len(args) != 2:
+                print("usage: product show <slug>")
+                return
+            slug = args[1]
+            do_show_store(self.db, slug)
+
         else:
             print("not implemented yet")
 

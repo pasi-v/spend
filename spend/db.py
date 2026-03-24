@@ -141,9 +141,16 @@ ON stores(slug)"""
 
 
     def select_stores(self):
-        sql = "SELECT slug, name FROM STORES"
+        sql = "SELECT slug, name FROM stores"
         res = self.con.execute(sql)
         return res.fetchall()
+
+
+    def select_store(self, slug: str):
+        sql = "SELECT slug, name FROM stores WHERE slug = ?"
+        values = (slug.lower(), )
+        res = self.con.execute(sql, values)
+        return res.fetchone()
 
 
     def close(self):
