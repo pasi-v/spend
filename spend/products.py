@@ -21,7 +21,6 @@ def insert_product(conn, product_slug, product_name, producer_id=None):
     sql = "INSERT INTO products (slug, name, producer_id) VALUES (?, ?, ?)"
     values = (product_slug.lower(), product_name, producer_id)
     conn.execute(sql, values)
-    conn.commit()
 
 
 def select_products(conn):
@@ -48,14 +47,12 @@ def update_product(conn, slug: str, name: str, producer_id: int):
     sql = "UPDATE products SET name = ?, producer_id = ? WHERE slug = ?"
     values = (name, producer_id, slug.lower())
     conn.execute(sql, values)
-    conn.commit()
 
 
 def delete_product(conn, slug):
     sql = "DELETE FROM products WHERE slug = ?"
     values = (slug.lower(), )
     conn.execute(sql, values)
-    conn.commit()
 
 
 def do_add_product(conn, product_slug: str, name: str, producer_slug: str=None):

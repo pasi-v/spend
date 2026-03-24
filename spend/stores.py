@@ -14,7 +14,6 @@ def insert_store(conn, slug: str, name:str):
     sql = "INSERT INTO stores (slug, name) VALUES (?, ?)"
     values = (slug.lower(), name)
     conn.execute(sql, values)
-    conn.commit()
 
 
 def select_stores(conn):

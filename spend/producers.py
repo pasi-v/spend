@@ -14,7 +14,6 @@ def insert_producer(conn, slug, name):
     sql = "INSERT INTO producers (slug, name) VALUES (?, ?)"
     values = (slug.lower(), name)
     conn.execute(sql, values)
-    conn.commit()
 
 
 def select_producers(conn):
@@ -34,14 +33,12 @@ def update_producer(conn, slug, name):
     sql = "UPDATE producers SET name = ? WHERE slug = ?"
     values = (name, slug.lower())
     conn.execute(sql, values)
-    conn.commit()
 
 
 def delete_producer(conn, slug):
     sql = "DELETE FROM producers WHERE slug = ?"
     values = (slug.lower(), )
     conn.execute(sql, values)
-    conn.commit()
 
 
 def do_add_producer(conn, slug, name):

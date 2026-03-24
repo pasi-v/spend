@@ -5,6 +5,11 @@ import products
 import stores
 
 
+def run_tx(conn, fn, *args):
+    with conn:
+        return fn(conn, *args)
+
+
 class SpendShell(cmd.Cmd):
     intro = (
         "Welcome to spend your hard-earned money.  Type help or ? to list commands.\n"
@@ -32,7 +37,7 @@ class SpendShell(cmd.Cmd):
                     else:
                         slug = args[1]
                         name = args[2]
-                        producers.do_add_producer(self.conn, slug, name)
+                        run_tx(self.conn, producers.do_add_producer, slug, name)
                 elif subcommand == "list":
                     producers.do_list_producers(self.conn)
                 elif subcommand == "show":
@@ -46,13 +51,13 @@ class SpendShell(cmd.Cmd):
                         print("usage: producer update <slug>")
                     else:
                         slug = args[1]
-                        producers.do_update_producer(self.conn, slug)
+                        run_tx(self.conn, producers.do_update_producer, slug)
                 elif subcommand == "delete":
                     if len(args) != 2:
                         print("usage: producer delete <slug>")
                     else:
                         slug = args[1]
-                        producers.do_delete_producer(self.conn, slug)
+                        run_tx(self.conn, producers.do_delete_producer, slug)
                 else:
                     print("not implemented yet")
 
@@ -78,7 +83,7 @@ class SpendShell(cmd.Cmd):
                 producer_slug = None
                 if len(args) >= 3:
                     producer_slug = args[3]
-                products.do_add_product(self.conn, product_slug, product_name, producer_slug)
+                run_tx(self.conn, products.do_add_product, product_slug, product_name, producer_slug)
             elif subcommand == "list":
                 products.do_list_products(self.conn)
             elif subcommand == "show":
@@ -93,14 +98,14 @@ class SpendShell(cmd.Cmd):
                     print("usage: product update <slug>")
                     return
                 slug = args[1]
-                products.do_update_product(self.conn, slug)
+                run_tx(self.conn, products.do_update_product, slug)
 
             elif subcommand == "delete":
                 if len(args) != 2:
                     print("usage: product delete <slug>")
                     return
                 slug = args[1]
-                products.do_delete_product(self.conn, slug)
+                run_tx(self.conn, products.do_delete_product, slug)
             else:
                 print("not implemented yet")
 
@@ -122,7 +127,7 @@ class SpendShell(cmd.Cmd):
 
             slug = args[1]
             name = args[2]
-            stores.do_add_store(self.conn, slug, name)
+            run_tx(self.conn, stores.do_add_store, slug, name)
         elif subcommand == "list":
             stores.do_list_stores(self.conn)
         elif subcommand == "show":
