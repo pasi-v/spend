@@ -1,8 +1,11 @@
-from db import Database
+from db import get_connection, init_db
 from shell import SpendShell
 
 
 if __name__ == "__main__":
-    database = Database("spend.db")
-    SpendShell(database).cmdloop()
-    database.close()
+    conn = get_connection("spend.db")
+    with conn:
+        init_db(conn)
+
+    SpendShell(conn).cmdloop()
+    conn.close()
