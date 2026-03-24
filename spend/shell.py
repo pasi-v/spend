@@ -144,6 +144,13 @@ class SpendShell(cmd.Cmd):
             slug = args[1]
             run_tx(self.conn, stores.do_update_store, slug)
 
+        elif subcommand == "delete":
+            if len(args) != 2:
+                print("usage: store delete <slug>")
+                return
+            slug = args[1]
+            run_tx(self.conn, stores.do_delete_store, slug)
+
         else:
             print("not implemented yet")
 

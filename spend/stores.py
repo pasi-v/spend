@@ -35,6 +35,12 @@ def update_store(conn, slug, name):
     conn.execute(sql, values)
 
 
+def delete_store(conn, slug):
+    sql = "DELETE FROM stores WHERE slug = ?"
+    values = (slug.lower(), )
+    conn.execute(sql, values)
+
+
 def do_add_store(conn, slug: str, name: str):
     """Add store to the database."""
     print(f"Adding {slug} to database and setting name={name}")
@@ -65,3 +71,8 @@ def do_update_store(conn, slug: str):
         update_store(conn, slug, name)
     else:
         print(f'Store {slug} not found.')
+
+
+def do_delete_store(conn, slug):
+    """Delete store <slug> from the database."""
+    delete_store(conn, slug)
