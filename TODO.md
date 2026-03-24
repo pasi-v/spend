@@ -1,9 +1,5 @@
 # TODO
 
-Use `with conn:` instead of execute + commit in all data modifications.
-
-Add schema versioning.
-
 Add CRUD for stores:
     1. Design table structure.
     2. Create table, and index for store slug.
@@ -13,7 +9,11 @@ Add CRUD for stores:
     6. `delete` command.
     7. `update` command.
 
+Add schema versioning before next schema change.
+
 Figure out a good way to add sub-commands for commands (see also readline auto-complete below).
+
+Tests.
 
 
 ## Nice to have
