@@ -1,6 +1,7 @@
 import sqlite3
 import producers
 import products
+import vouchers
 import stores
 
 def get_connection(dbname: str="spend.db"):
@@ -14,3 +15,4 @@ def init_db(conn):
     conn.executescript(producers.schema())
     conn.executescript(products.schema())
     conn.executescript(stores.schema())
+    conn.executescript(vouchers.schema())
