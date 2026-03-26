@@ -23,7 +23,7 @@ def select_stores(conn):
 
 
 def select_store(conn, slug: str):
-    sql = "SELECT slug, name FROM stores WHERE slug = ?"
+    sql = "SELECT store_id, slug, name FROM stores WHERE slug = ?"
     values = (slug.lower(), )
     res = conn.execute(sql, values)
     return res.fetchone()
@@ -76,3 +76,11 @@ def do_update_store(conn, slug: str):
 def do_delete_store(conn, slug):
     """Delete store <slug> from the database."""
     delete_store(conn, slug)
+
+
+def require_store(conn, slug):
+    """Return store or raise a ValueError if not found."""
+    store = select_store(conn, slug)
+    if store is None:
+        raise ValueError(f"Unknown store: {slug}")
+    return store

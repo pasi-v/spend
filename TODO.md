@@ -17,9 +17,11 @@ Add CRUD for voucher headers and voucher lines:
 
 Add schema versioning before next schema change.
 
-Figure out a good way to add sub-commands for commands (see also readline auto-complete below).
+Figure out a good way to add sub-commands for commands (see also readline auto-complete below).  Maybe some kind of dispatcher.
 
 Tests.
+
+Move all I/O from domain functions to shell.py.  They only validate data and call db functions.
 
 
 ## Nice to have

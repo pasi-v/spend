@@ -1,13 +1,42 @@
 import cmd
 import shlex
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 import producers
 import products
 import stores
+import vouchers
 
 
 def run_tx(conn, fn, *args):
     with conn:
         return fn(conn, *args)
+
+def collect_voucher_lines(conn):
+    lines = []
+    print("Adding voucher lines: <product_slug> <amount in €.cc>")
+    while True:
+        line = input()
+        if line == "":
+            break
+        parts = line.split()
+        if len(parts) < 2:
+            print("usage: <product_slug> <amount in €.cc>")
+            continue
+        product_slug = parts[0]
+        try:
+            products.require_product(conn, product_slug)
+        except ValueError as e:
+            print(e)
+            continue
+        amount_str = parts[1]
+        try:
+            amount = Decimal(amount_str)
+        except decimal.InvalidOperation:
+            print(f"Invalid amount: {amount_str}.  Use '123.45'.")
+            continue
+        lines.append((product_slug, amount))
+    return lines
 
 
 class SpendShell(cmd.Cmd):
@@ -81,7 +110,7 @@ class SpendShell(cmd.Cmd):
                 product_slug = args[1]
                 product_name = args[2]
                 producer_slug = None
-                if len(args) >= 3:
+                if len(args) >= 4:
                     producer_slug = args[3]
                 run_tx(self.conn, products.do_add_product, product_slug, product_name, producer_slug)
             elif subcommand == "list":
@@ -153,6 +182,45 @@ class SpendShell(cmd.Cmd):
 
         else:
             print("not implemented yet")
+
+
+    def do_voucher(self, arg):
+        """Add, list, show, delete or update voucher."""
+        args = shlex.split(arg)
+        if len(args) < 1:
+            print("usage: voucher [add|list|show|delete|update]")
+            return
+
+        subcommand = args[0].lower()
+        if subcommand not in ("add", "list", "show", "delete", "update"):
+            print("usage: voucher [add|list|show|delete|update]")
+            return
+
+        if subcommand == "add":
+            if len(args) < 3:
+                print("usage: voucher add <date> <store_slug>>")
+                return
+
+            date_str = args[1]
+            try:
+                d = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                print("Invalid date. Use YYYY-MM-DD")
+                return
+            store_slug = args[2]
+            try:
+                stores.require_store(self.conn, store_slug)
+            except ValueError as e:
+                print(e)
+                return
+            lines = collect_voucher_lines(self.conn)
+            print(f"Adding voucher date: {d}, store: {store_slug}")
+            print(lines)
+            run_tx(self.conn, vouchers.do_add_voucher, d, store_slug, lines)
+
+        else:
+            print("not implemented yet")
+
 
     @staticmethod
     def do_quit(_):

@@ -55,6 +55,14 @@ def delete_product(conn, slug):
     conn.execute(sql, values)
 
 
+def require_product(conn, slug: str):
+    """Return product or raise a ValueError if not found."""
+    product = select_product(conn, slug)
+    if product is None:
+        raise ValueError(f"Unknown product: {slug}")
+    return product
+    
+
 def do_add_product(conn, product_slug: str, name: str, producer_slug: str=None):
     """Add product <slug> to the database and link to producer if producer_slug provided."""
     print(f"Adding {product_slug} to database and setting name={name}, producer_slug={producer_slug}")
