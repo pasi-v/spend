@@ -21,7 +21,7 @@ Figure out a good way to add sub-commands for commands (see also readline auto-c
 
 Tests.
 
-Move all I/O from domain functions to shell.py.  They only validate data and call db functions.
+Move all I/O from domain functions to shell.py.  They only validate data and call db functions.  Or maybe not, maybe the "domain functions" should not be domain functions at all, and instead just shell dispatches main commands to them, and then they handle I/O.
 
 
 ## Nice to have
