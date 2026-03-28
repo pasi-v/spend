@@ -221,6 +221,19 @@ class SpendShell(cmd.Cmd):
         
         elif subcommand == "list":
             vouchers.do_list_vouchers(self.conn)
+            return
+
+        elif subcommand == "show":
+            # Vouchers do not have slug, so they have to be shown by database id
+            if len(args) != 2:
+                print("usage: voucher show <id>")
+                return
+            try:
+                id = int(args[1])
+                vouchers.do_show_voucher(self.conn, id)
+            except ValueError:
+                print("voucher id must be an integer")
+            return
 
         else:
             print("not implemented yet")

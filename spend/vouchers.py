@@ -59,3 +59,24 @@ def do_list_vouchers(conn):
     res = select_vouchers(conn)
     for v in res:
         print(f"{v['voucher_id']} {v['date']} {v['amount_cents']/100} {v['product_slug']} {v['store_slug']}")
+
+
+def select_voucher(conn, voucher_id: int):
+    sql = """SELECT v.voucher_id, v.date, v.amount_cents, p.slug AS product_slug, s.slug AS store_slug
+    FROM vouchers as v
+    LEFT JOIN products as p ON v.product_id = p.product_id
+    LEFT JOIN stores as s ON v.store_id = s.store_id
+    WHERE voucher_id = ?"""
+
+    values = (voucher_id, )
+    res = conn.execute(sql, values)
+    return res.fetchone()
+
+
+def do_show_voucher(conn, voucher_id):
+    """Show a single voucher identified by voucher_id."""
+    v = select_voucher(conn, voucher_id)
+    if v is None:
+        print(f"Could not find voucher {voucher_id}")
+        return
+    print(f"{v['voucher_id']} {v['date']} {v['amount_cents']/100} {v['product_slug']} {v['store_slug']}")
