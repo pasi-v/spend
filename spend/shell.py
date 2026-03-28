@@ -217,6 +217,10 @@ class SpendShell(cmd.Cmd):
             print(f"Adding voucher date: {d}, store: {store_slug}")
             print(lines)
             run_tx(self.conn, vouchers.do_add_voucher, d, store_slug, lines)
+            return
+        
+        elif subcommand == "list":
+            vouchers.do_list_vouchers(self.conn)
 
         else:
             print("not implemented yet")
