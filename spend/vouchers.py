@@ -17,10 +17,10 @@ CREATE TABLE IF NOT EXISTS vouchers (
     store_id INTEGER REFERENCES stores(store_id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_product_id
+CREATE INDEX IF NOT EXISTS idx_vouchers_product
 ON vouchers(product_id);
 
-CREATE INDEX IF NOT EXISTS idx_store_id
+CREATE INDEX IF NOT EXISTS idx_vouchers_store
 ON vouchers(store_id);
 """
     return sql

@@ -12,7 +12,7 @@ producer_id INTEGER,
 FOREIGN KEY(producer_id) REFERENCES producers(producer_id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_products_slug
+CREATE INDEX IF NOT EXISTS idx_products_producer
 ON products(slug);
 """
 

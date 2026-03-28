@@ -4,9 +4,6 @@ CREATE TABLE IF NOT EXISTS stores (
 store_id INTEGER PRIMARY KEY AUTOINCREMENT,
 slug TEXT UNIQUE,
 name TEXT);
-
-CREATE INDEX IF NOT EXISTS idx_stores_slug 
-ON stores(slug);
 """
 
 
