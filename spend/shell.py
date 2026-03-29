@@ -14,7 +14,7 @@ def run_tx(conn, fn, *args):
 
 def collect_voucher_lines(conn):
     lines = []
-    print("Adding voucher lines: <product_slug> <amount in €.cc>")
+    print("Adding voucher lines: <product_slug> <amount in €.cc> (empty line to end)")
     while True:
         line = input()
         if line == "":
@@ -198,7 +198,7 @@ class SpendShell(cmd.Cmd):
 
         if subcommand == "add":
             if len(args) < 3:
-                print("usage: voucher add <date> <store_slug>>")
+                print("usage: voucher add <date> <store_slug>")
                 return
 
             date_str = args[1]
@@ -231,6 +231,18 @@ class SpendShell(cmd.Cmd):
             try:
                 id = int(args[1])
                 vouchers.do_show_voucher(self.conn, id)
+            except ValueError:
+                print("voucher id must be an integer")
+            return
+
+        elif subcommand == "delete":
+            # Vouchers do not have slug, so they have to be shown by database id
+            if len(args) != 2:
+                print("usage: voucher delete <id>")
+                return
+            try:
+                id = int(args[1])
+                run_tx(self.conn, vouchers.do_delete_voucher, id)
             except ValueError:
                 print("voucher id must be an integer")
             return
