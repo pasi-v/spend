@@ -91,6 +91,28 @@ commands = {
             "transaction": True,
         },
     },
+    "voucher": {
+        "add": {
+            "handler": voucher_add,    # Note that this is at the UI layer
+            "args": ["date", "store_slug"],
+            "transaction": True,
+        },
+        "list": {
+            "handler": vouchers.do_list_vouchers,
+            "args": [],
+            "transaction": False,
+        },
+        "show": {
+            "handler": voucher_show,   # Note that this is at the UI layer
+            "args": ["voucher_id"],
+            "transaction": False,
+        },
+        "delete": {
+            "handler": voucher_delete, # Note that this is at the UI layer
+            "args": ["voucher_id"],
+            "transaction": True,
+        },
+    },
 }
 
 
@@ -118,11 +140,57 @@ def collect_voucher_lines(conn):
         amount_str = parts[1]
         try:
             amount = Decimal(amount_str)
-        except decimal.InvalidOperation:
+        except InvalidOperation:
             print(f"Invalid amount: {amount_str}.  Use '123.45'.")
             continue
         lines.append((product_slug, amount))
     return lines
+
+
+def voucher_add(conn, date_str, store_slug):
+    # 1. Parse date
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        print("Invalid date. Use YYYY-MM-DD")
+        return
+
+    # 2. Validate store
+    try:
+        stores.require_store(conn, store_slug)
+    except ValueError as e:
+        print(e)
+        return
+
+    # 3. Collect voucher lines (interactive)
+    lines = collect_voucher_lines(conn)
+
+    # 4. Final action
+    # TODO: Remove these debug prints or at least print nicely
+    print(f"Adding voucher date: {d}, store: {store_slug}")
+    print(lines)
+
+    vouchers.do_add_voucher(conn, d, store_slug, lines)
+
+
+def voucher_show(conn, id_str):
+    # Vouchers do not have slug, so they have to be shown by database id
+    try:
+        id = int(id_str)
+        vouchers.do_show_voucher(conn, id)
+    except ValueError:
+        print("voucher id must be an integer")
+    return
+
+
+def voucher_delete(conn, id_str):
+    # Vouchers do not have slug, so they have to be deleted by database id
+    try:
+        id = int(id_str)
+        vouchers.do_delete_voucher(conn, id)
+    except ValueError:
+        print("voucher id must be an integer")
+    return
 
 
 class SpendShell(cmd.Cmd):
@@ -173,7 +241,7 @@ class SpendShell(cmd.Cmd):
                 handler(self.conn, *values)
             
         except sqlite3.IntegrityError:
-            # keep current behavior for add-like commands
+            # keep current behavior for add-like commands for now, refactor later
             if subcommand == "add" and values:
                 print(f'{entity_name.capitalize()} {values[0]} already exists, skipping add.')
             else:
@@ -197,70 +265,7 @@ class SpendShell(cmd.Cmd):
 
     def do_voucher(self, arg):
         """Add, list, show, delete or update voucher."""
-        tokens = parse(arg)
-        if len(tokens) < 1:
-            print("usage: voucher [add|list|show|delete|update]")
-            return
-
-        subcommand = tokens[0].lower()
-        if subcommand not in ("add", "list", "show", "delete", "update"):
-            print("usage: voucher [add|list|show|delete|update]")
-            return
-
-        if subcommand == "add":
-            if len(tokens) < 3:
-                print("usage: voucher add <date> <store_slug>")
-                return
-
-            date_str = tokens[1]
-            try:
-                d = datetime.strptime(date_str, "%Y-%m-%d").date()
-            except ValueError:
-                print("Invalid date. Use YYYY-MM-DD")
-                return
-            store_slug = tokens[2]
-            try:
-                stores.require_store(self.conn, store_slug)
-            except ValueError as e:
-                print(e)
-                return
-            lines = collect_voucher_lines(self.conn)
-            print(f"Adding voucher date: {d}, store: {store_slug}")
-            print(lines)
-            run_tx(self.conn, vouchers.do_add_voucher, d, store_slug, lines)
-            return
-        
-        elif subcommand == "list":
-            vouchers.do_list_vouchers(self.conn)
-            return
-
-        elif subcommand == "show":
-            # Vouchers do not have slug, so they have to be shown by database id
-            if len(tokens) != 2:
-                print("usage: voucher show <id>")
-                return
-            try:
-                id = int(tokens[1])
-                vouchers.do_show_voucher(self.conn, id)
-            except ValueError:
-                print("voucher id must be an integer")
-            return
-
-        elif subcommand == "delete":
-            # Vouchers do not have slug, so they have to be shown by database id
-            if len(tokens) != 2:
-                print("usage: voucher delete <id>")
-                return
-            try:
-                id = int(tokens[1])
-                run_tx(self.conn, vouchers.do_delete_voucher, id)
-            except ValueError:
-                print("voucher id must be an integer")
-            return
-
-        else:
-            print("not implemented yet")
-
+        self.dispatch("voucher", arg)
 
     @staticmethod
     def do_quit(_):
