@@ -10,6 +10,33 @@ import vouchers
 
 
 commands = {
+    "producer": {
+        "add": {
+            "handler": producers.do_add_producer,
+            "args": ["producer_slug", "producer_name"],
+            "transaction": True,
+        },
+        "list": {
+            "handler": producers.do_list_producers,
+            "args": [],
+            "transaction": False,
+        },
+        "show": {
+            "handler": producers.do_show_producer,
+            "args": ["producer_slug"],
+            "transaction": False,
+        },
+        "update": {
+            "handler": producers.do_update_producer,
+            "args": ["producer_slug"],
+            "transaction": True,
+        },
+        "delete": {
+            "handler": producers.do_delete_producer,
+            "args": ["producer_slug"],
+            "transaction": True,
+        },
+    },
     "product": {
         "add": {
             "handler": products.do_add_product,
@@ -92,49 +119,52 @@ class SpendShell(cmd.Cmd):
 
     def do_producer(self, arg):
         """Add, list, show, delete or update producer."""
-        tokens = parse(arg)
-        if len(tokens) < 1:
+        # TODO: Get rid of this eventually
+        producer_commands = commands["producer"]
+        
+        args = shlex.split(arg)
+
+        if not args:
             print("usage: producer [add|list|show|delete|update]")
             return
-        else:
-            subcommand = tokens[0].lower()
-            if subcommand not in ("add", "list", "show", "delete", "update"):
-                print("usage: producer [add|list|show|delete|update]")
-            else:
-                if subcommand == "add":
-                    if len(tokens) != 3:
-                        print("usage: producer add <slug> <name>")
-                    else:
-                        slug = tokens[1]
-                        name = tokens[2]
-                        try:
-                            run_tx(self.conn, producers.do_add_producer, slug, name)
-                        except sqlite3.IntegrityError:
-                            print(f'Producer {slug} already exists, skipping add.')
-                        return
-                elif subcommand == "list":
-                    producers.do_list_producers(self.conn)
-                elif subcommand == "show":
-                    if len(tokens) != 2:
-                        print("usage: producer show <slug>")
-                    else:
-                        slug = tokens[1]
-                        producers.do_show_producer(self.conn, slug)
-                elif subcommand == "update":
-                    if len(tokens) != 2:
-                        print("usage: producer update <slug>")
-                    else:
-                        slug = tokens[1]
-                        run_tx(self.conn, producers.do_update_producer, slug)
-                elif subcommand == "delete":
-                    if len(tokens) != 2:
-                        print("usage: producer delete <slug>")
-                    else:
-                        slug = tokens[1]
-                        run_tx(self.conn, producers.do_delete_producer, slug)
-                else:
-                    print("not implemented yet")
 
+        subcommand = args[0].lower()
+        sub = producer_commands.get(subcommand)
+
+        if sub is None:
+            print("usage: producer [add|list|show|delete|update]")
+            return
+
+        handler = sub["handler"]
+        arg_spec = sub["args"]
+        wants_tx = sub["transaction"]
+
+        # Split off subcommand
+        values = args[1:]
+
+        # Count required args (no '?')
+        required = [a for a in arg_spec if not a.endswith("?")]
+        optional = [a for a in arg_spec if a.endswith("?")]
+
+        if not (len(required) <= len(values) <= len(required) + len(optional)):
+            usage = " ".join(arg_spec)
+            print(f"usage: producer {subcommand} {usage}")
+            return
+
+        # Call handler
+        try:
+            if wants_tx:
+                run_tx(self.conn, handler, *values)
+            else:
+                handler(self.conn, *values)
+        except sqlite3.IntegrityError:
+            # TODO: Move this to handler
+            if subcommand == "add":
+                print(f'Producer {values[0]} already exists, skipping add.')
+            else:
+                raise
+
+            
     def do_product(self, arg):
         """Add, list, show, delete or update product."""
         # TODO: Get rid of this eventually
