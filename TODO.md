@@ -1,23 +1,8 @@
 # TODO
 
-## Essential functionality
-
-Add CRUD for voucher headers and voucher lines:
-    1. Design table structure.
-    2. Create table, and index.
-    3. `add` command (voucher header with store and date).
-        * UI to add line items => write each to fact table with denormalised header information (store and date)
-    4. `list` command (shows line items).
-        * Need some kind of filtering functionality
-    5. Design and implement `delete` command for line item based on db id.
-    6. Design and implement `update` command for line item based on db id.
-
-
 ## Important improvements
 
 Add schema versioning before next schema change.
-
-Figure out a good way to add sub-commands for commands (see also readline auto-complete below).  Maybe some kind of dispatcher.
 
 Tests.
 
