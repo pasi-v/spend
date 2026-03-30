@@ -9,6 +9,37 @@ import stores
 import vouchers
 
 
+commands = {
+    "product": {
+        "add": {
+            "handler": products.do_add_product,
+            "args": ["product_slug", "product_name", "producer_slug?"],
+            "transaction": True,
+        },
+        "list": {
+            "handler": products.do_list_products,
+            "args": [],
+            "transaction": False,
+        },
+        "show": {
+            "handler": products.do_show_product,
+            "args": ["product_slug"],
+            "transaction": False,
+        },
+        "update": {
+            "handler": products.do_update_product,
+            "args": ["product_slug"],
+            "transaction": True,
+        },
+        "delete": {
+            "handler": products.do_delete_product,
+            "args": ["product_slug"],
+            "transaction": True,
+        },
+    },
+}
+
+
 def run_tx(conn, fn, *args):
     with conn:
         return fn(conn, *args)
@@ -42,6 +73,11 @@ def collect_voucher_lines(conn):
 
 def parse(arg):
     return shlex.split(arg)
+
+
+def dispatch(command: str, tokens):
+    # TODO
+    pass
 
 
 class SpendShell(cmd.Cmd):
@@ -101,57 +137,52 @@ class SpendShell(cmd.Cmd):
 
     def do_product(self, arg):
         """Add, list, show, delete or update product."""
-        tokens = parse(arg)
-        if len(tokens) < 1:
+        # TODO: Get rid of this eventually
+        product_commands = commands["product"]
+        
+        args = shlex.split(arg)
+
+        if not args:
             print("usage: product [add|list|show|delete|update]")
             return
-        else:
-            subcommand = tokens[0].lower()
-            if subcommand not in ("add", "list", "show", "delete", "update"):
-                print("usage: product [add|list|show|delete|update]")
-                return
 
-            if subcommand == "add":
-                if len(tokens) < 3:
-                    print("usage: product add <slug> <name> <producer_slug>")
-                    return
+        subcommand = args[0].lower()
+        sub = product_commands.get(subcommand)
 
-                product_slug = tokens[1]
-                product_name = tokens[2]
-                producer_slug = None
-                if len(tokens) >= 4:
-                    producer_slug = tokens[3]
-                try:
-                    run_tx(self.conn,
-                           products.do_add_product, product_slug, product_name, producer_slug)
-                except sqlite3.IntegrityError:
-                    print(f'Product {product_slug} already exists, skipping add.')
-                return
-            elif subcommand == "list":
-                products.do_list_products(self.conn)
-            elif subcommand == "show":
-                if len(tokens) != 2:
-                    print("usage: product show <slug>")
-                    return
-                slug = tokens[1]
-                products.do_show_product(self.conn, slug)
+        if sub is None:
+            print("usage: product [add|list|show|delete|update]")
+            return
 
-            elif subcommand == "update":
-                if len(tokens) != 2:
-                    print("usage: product update <slug>")
-                    return
-                slug = tokens[1]
-                run_tx(self.conn, products.do_update_product, slug)
+        handler = sub["handler"]
+        arg_spec = sub["args"]
+        wants_tx = sub["transaction"]
 
-            elif subcommand == "delete":
-                if len(tokens) != 2:
-                    print("usage: product delete <slug>")
-                    return
-                slug = tokens[1]
-                run_tx(self.conn, products.do_delete_product, slug)
+        # Split off subcommand
+        values = args[1:]
+
+        # Count required args (no '?')
+        required = [a for a in arg_spec if not a.endswith("?")]
+        optional = [a for a in arg_spec if a.endswith("?")]
+
+        if not (len(required) <= len(values) <= len(required) + len(optional)):
+            usage = " ".join(arg_spec)
+            print(f"usage: product {subcommand} {usage}")
+            return
+
+        # Call handler
+        try:
+            if wants_tx:
+                run_tx(self.conn, handler, *values)
             else:
-                print("not implemented yet")
+                handler(self.conn, *values)
+        except sqlite3.IntegrityError:
+            # TODO: Move this to handler
+            if subcommand == "add":
+                print(f'Product {values[0]} already exists, skipping add.')
+            else:
+                raise
 
+            
     def do_store(self, arg):
         """Add, list, show, delete or update store."""
         tokens = parse(arg)
