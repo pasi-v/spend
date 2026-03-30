@@ -64,6 +64,33 @@ commands = {
             "transaction": True,
         },
     },
+    "store": {
+        "add": {
+            "handler": stores.do_add_store,
+            "args": ["store_slug", "store_name"],
+            "transaction": True,
+        },
+        "list": {
+            "handler": stores.do_list_stores,
+            "args": [],
+            "transaction": False,
+        },
+        "show": {
+            "handler": stores.do_show_store,
+            "args": ["store_slug"],
+            "transaction": False,
+        },
+        "update": {
+            "handler": stores.do_update_store,
+            "args": ["store_slug"],
+            "transaction": True,
+        },
+        "delete": {
+            "handler": stores.do_delete_store,
+            "args": ["store_slug"],
+            "transaction": True,
+        },
+    },
 }
 
 
@@ -98,15 +125,6 @@ def collect_voucher_lines(conn):
     return lines
 
 
-def parse(arg):
-    return shlex.split(arg)
-
-
-def dispatch(command: str, tokens):
-    # TODO
-    pass
-
-
 class SpendShell(cmd.Cmd):
     intro = (
         "Welcome to spend your hard-earned money.  Type help or ? to list commands.\n"
@@ -117,150 +135,64 @@ class SpendShell(cmd.Cmd):
         super().__init__()
         self.conn = conn
 
-    def do_producer(self, arg):
-        """Add, list, show, delete or update producer."""
-        # TODO: Get rid of this eventually
-        producer_commands = commands["producer"]
-        
+    def dispatch(self, entity_name: str, arg: str):
         args = shlex.split(arg)
+        entity_commands = commands[entity_name]
 
         if not args:
-            print("usage: producer [add|list|show|delete|update]")
+            subs = "|".join(entity_commands.keys())
+            print(f"usage: {entity_name} [{subs}]")
             return
 
         subcommand = args[0].lower()
-        sub = producer_commands.get(subcommand)
+        sub = entity_commands.get(subcommand)
 
         if sub is None:
-            print("usage: producer [add|list|show|delete|update]")
+            subs = "|".join(entity_commands.keys())
+            print(f"usage: {entity_name} [{subs}]")
             return
 
         handler = sub["handler"]
         arg_spec = sub["args"]
         wants_tx = sub["transaction"]
 
-        # Split off subcommand
         values = args[1:]
 
-        # Count required args (no '?')
         required = [a for a in arg_spec if not a.endswith("?")]
         optional = [a for a in arg_spec if a.endswith("?")]
 
         if not (len(required) <= len(values) <= len(required) + len(optional)):
             usage = " ".join(arg_spec)
-            print(f"usage: producer {subcommand} {usage}")
+            print(f"usage: {entity_name} {subcommand} {usage}")
             return
 
-        # Call handler
         try:
             if wants_tx:
                 run_tx(self.conn, handler, *values)
             else:
                 handler(self.conn, *values)
+            
         except sqlite3.IntegrityError:
-            # TODO: Move this to handler
-            if subcommand == "add":
-                print(f'Producer {values[0]} already exists, skipping add.')
+            # keep current behavior for add-like commands
+            if subcommand == "add" and values:
+                print(f'{entity_name.capitalize()} {values[0]} already exists, skipping add.')
             else:
                 raise
+
+        
+    def do_producer(self, arg):
+        """Add, list, show, delete or update producer."""
+        self.dispatch("producer", arg)
 
             
     def do_product(self, arg):
         """Add, list, show, delete or update product."""
-        # TODO: Get rid of this eventually
-        product_commands = commands["product"]
-        
-        args = shlex.split(arg)
-
-        if not args:
-            print("usage: product [add|list|show|delete|update]")
-            return
-
-        subcommand = args[0].lower()
-        sub = product_commands.get(subcommand)
-
-        if sub is None:
-            print("usage: product [add|list|show|delete|update]")
-            return
-
-        handler = sub["handler"]
-        arg_spec = sub["args"]
-        wants_tx = sub["transaction"]
-
-        # Split off subcommand
-        values = args[1:]
-
-        # Count required args (no '?')
-        required = [a for a in arg_spec if not a.endswith("?")]
-        optional = [a for a in arg_spec if a.endswith("?")]
-
-        if not (len(required) <= len(values) <= len(required) + len(optional)):
-            usage = " ".join(arg_spec)
-            print(f"usage: product {subcommand} {usage}")
-            return
-
-        # Call handler
-        try:
-            if wants_tx:
-                run_tx(self.conn, handler, *values)
-            else:
-                handler(self.conn, *values)
-        except sqlite3.IntegrityError:
-            # TODO: Move this to handler
-            if subcommand == "add":
-                print(f'Product {values[0]} already exists, skipping add.')
-            else:
-                raise
+        self.dispatch("product", arg)
 
             
     def do_store(self, arg):
         """Add, list, show, delete or update store."""
-        tokens = parse(arg)
-        if len(tokens) < 1:
-            print("usage: store [add|list|show|delete|update]")
-            return
-
-        subcommand = tokens[0].lower()
-        if subcommand not in ("add", "list", "show", "delete", "update"):
-            print("usage: store [add|list|show|delete|update]")
-            return
-        if subcommand == "add":
-            if len(tokens) < 3:
-                print("usage: store add <slug> <name>")
-                return
-
-            slug = tokens[1]
-            name = tokens[2]
-            try:
-                run_tx(self.conn, stores.do_add_store, slug, name)
-            except sqlite3.IntegrityError:
-                print(f'Store {slug} already exists, skipping add.')
-            return
-        elif subcommand == "list":
-            stores.do_list_stores(self.conn)
-        elif subcommand == "show":
-            if len(tokens) != 2:
-                print("usage: product show <slug>")
-                return
-            slug = tokens[1]
-            stores.do_show_store(self.conn, slug)
-
-        elif subcommand == "update":
-            if len(tokens) != 2:
-                print("usage: store update <slug>")
-                return
-            slug = tokens[1]
-            run_tx(self.conn, stores.do_update_store, slug)
-
-        elif subcommand == "delete":
-            if len(tokens) != 2:
-                print("usage: store delete <slug>")
-                return
-            slug = tokens[1]
-            run_tx(self.conn, stores.do_delete_store, slug)
-
-        else:
-            print("not implemented yet")
+        self.dispatch("store", arg)
 
 
     def do_voucher(self, arg):
