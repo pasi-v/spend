@@ -2,6 +2,7 @@ import cmd
 import shlex
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+import sqlite3
 import producers
 import products
 import stores
@@ -39,6 +40,10 @@ def collect_voucher_lines(conn):
     return lines
 
 
+def parse(arg):
+    return shlex.split(arg)
+
+
 class SpendShell(cmd.Cmd):
     intro = (
         "Welcome to spend your hard-earned money.  Type help or ? to list commands.\n"
@@ -51,133 +56,146 @@ class SpendShell(cmd.Cmd):
 
     def do_producer(self, arg):
         """Add, list, show, delete or update producer."""
-        args = shlex.split(arg)
-        if len(args) < 1:
+        tokens = parse(arg)
+        if len(tokens) < 1:
             print("usage: producer [add|list|show|delete|update]")
             return
         else:
-            subcommand = args[0].lower()
+            subcommand = tokens[0].lower()
             if subcommand not in ("add", "list", "show", "delete", "update"):
                 print("usage: producer [add|list|show|delete|update]")
             else:
                 if subcommand == "add":
-                    if len(args) != 3:
+                    if len(tokens) != 3:
                         print("usage: producer add <slug> <name>")
                     else:
-                        slug = args[1]
-                        name = args[2]
-                        run_tx(self.conn, producers.do_add_producer, slug, name)
+                        slug = tokens[1]
+                        name = tokens[2]
+                        try:
+                            run_tx(self.conn, producers.do_add_producer, slug, name)
+                        except sqlite3.IntegrityError:
+                            print(f'Producer {slug} already exists, skipping add.')
+                        return
                 elif subcommand == "list":
                     producers.do_list_producers(self.conn)
                 elif subcommand == "show":
-                    if len(args) != 2:
+                    if len(tokens) != 2:
                         print("usage: producer show <slug>")
                     else:
-                        slug = args[1]
+                        slug = tokens[1]
                         producers.do_show_producer(self.conn, slug)
                 elif subcommand == "update":
-                    if len(args) != 2:
+                    if len(tokens) != 2:
                         print("usage: producer update <slug>")
                     else:
-                        slug = args[1]
+                        slug = tokens[1]
                         run_tx(self.conn, producers.do_update_producer, slug)
                 elif subcommand == "delete":
-                    if len(args) != 2:
+                    if len(tokens) != 2:
                         print("usage: producer delete <slug>")
                     else:
-                        slug = args[1]
+                        slug = tokens[1]
                         run_tx(self.conn, producers.do_delete_producer, slug)
                 else:
                     print("not implemented yet")
 
     def do_product(self, arg):
         """Add, list, show, delete or update product."""
-        args = shlex.split(arg)
-        if len(args) < 1:
+        tokens = parse(arg)
+        if len(tokens) < 1:
             print("usage: product [add|list|show|delete|update]")
             return
         else:
-            subcommand = args[0].lower()
+            subcommand = tokens[0].lower()
             if subcommand not in ("add", "list", "show", "delete", "update"):
                 print("usage: product [add|list|show|delete|update]")
                 return
 
             if subcommand == "add":
-                if len(args) < 3:
+                if len(tokens) < 3:
                     print("usage: product add <slug> <name> <producer_slug>")
                     return
 
-                product_slug = args[1]
-                product_name = args[2]
+                product_slug = tokens[1]
+                product_name = tokens[2]
                 producer_slug = None
-                if len(args) >= 4:
-                    producer_slug = args[3]
-                run_tx(self.conn, products.do_add_product, product_slug, product_name, producer_slug)
+                if len(tokens) >= 4:
+                    producer_slug = tokens[3]
+                try:
+                    run_tx(self.conn,
+                           products.do_add_product, product_slug, product_name, producer_slug)
+                except sqlite3.IntegrityError:
+                    print(f'Product {product_slug} already exists, skipping add.')
+                return
             elif subcommand == "list":
                 products.do_list_products(self.conn)
             elif subcommand == "show":
-                if len(args) != 2:
+                if len(tokens) != 2:
                     print("usage: product show <slug>")
                     return
-                slug = args[1]
+                slug = tokens[1]
                 products.do_show_product(self.conn, slug)
 
             elif subcommand == "update":
-                if len(args) != 2:
+                if len(tokens) != 2:
                     print("usage: product update <slug>")
                     return
-                slug = args[1]
+                slug = tokens[1]
                 run_tx(self.conn, products.do_update_product, slug)
 
             elif subcommand == "delete":
-                if len(args) != 2:
+                if len(tokens) != 2:
                     print("usage: product delete <slug>")
                     return
-                slug = args[1]
+                slug = tokens[1]
                 run_tx(self.conn, products.do_delete_product, slug)
             else:
                 print("not implemented yet")
 
     def do_store(self, arg):
         """Add, list, show, delete or update store."""
-        args = shlex.split(arg)
-        if len(args) < 1:
+        tokens = parse(arg)
+        if len(tokens) < 1:
             print("usage: store [add|list|show|delete|update]")
             return
 
-        subcommand = args[0].lower()
+        subcommand = tokens[0].lower()
         if subcommand not in ("add", "list", "show", "delete", "update"):
             print("usage: store [add|list|show|delete|update]")
             return
         if subcommand == "add":
-            if len(args) < 3:
+            if len(tokens) < 3:
                 print("usage: store add <slug> <name>")
                 return
 
-            slug = args[1]
-            name = args[2]
-            run_tx(self.conn, stores.do_add_store, slug, name)
+            slug = tokens[1]
+            name = tokens[2]
+            try:
+                run_tx(self.conn, stores.do_add_store, slug, name)
+            except sqlite3.IntegrityError:
+                print(f'Store {slug} already exists, skipping add.')
+            return
         elif subcommand == "list":
             stores.do_list_stores(self.conn)
         elif subcommand == "show":
-            if len(args) != 2:
+            if len(tokens) != 2:
                 print("usage: product show <slug>")
                 return
-            slug = args[1]
+            slug = tokens[1]
             stores.do_show_store(self.conn, slug)
 
         elif subcommand == "update":
-            if len(args) != 2:
+            if len(tokens) != 2:
                 print("usage: store update <slug>")
                 return
-            slug = args[1]
+            slug = tokens[1]
             run_tx(self.conn, stores.do_update_store, slug)
 
         elif subcommand == "delete":
-            if len(args) != 2:
+            if len(tokens) != 2:
                 print("usage: store delete <slug>")
                 return
-            slug = args[1]
+            slug = tokens[1]
             run_tx(self.conn, stores.do_delete_store, slug)
 
         else:
@@ -186,28 +204,28 @@ class SpendShell(cmd.Cmd):
 
     def do_voucher(self, arg):
         """Add, list, show, delete or update voucher."""
-        args = shlex.split(arg)
-        if len(args) < 1:
+        tokens = parse(arg)
+        if len(tokens) < 1:
             print("usage: voucher [add|list|show|delete|update]")
             return
 
-        subcommand = args[0].lower()
+        subcommand = tokens[0].lower()
         if subcommand not in ("add", "list", "show", "delete", "update"):
             print("usage: voucher [add|list|show|delete|update]")
             return
 
         if subcommand == "add":
-            if len(args) < 3:
+            if len(tokens) < 3:
                 print("usage: voucher add <date> <store_slug>")
                 return
 
-            date_str = args[1]
+            date_str = tokens[1]
             try:
                 d = datetime.strptime(date_str, "%Y-%m-%d").date()
             except ValueError:
                 print("Invalid date. Use YYYY-MM-DD")
                 return
-            store_slug = args[2]
+            store_slug = tokens[2]
             try:
                 stores.require_store(self.conn, store_slug)
             except ValueError as e:
@@ -225,11 +243,11 @@ class SpendShell(cmd.Cmd):
 
         elif subcommand == "show":
             # Vouchers do not have slug, so they have to be shown by database id
-            if len(args) != 2:
+            if len(tokens) != 2:
                 print("usage: voucher show <id>")
                 return
             try:
-                id = int(args[1])
+                id = int(tokens[1])
                 vouchers.do_show_voucher(self.conn, id)
             except ValueError:
                 print("voucher id must be an integer")
@@ -237,11 +255,11 @@ class SpendShell(cmd.Cmd):
 
         elif subcommand == "delete":
             # Vouchers do not have slug, so they have to be shown by database id
-            if len(args) != 2:
+            if len(tokens) != 2:
                 print("usage: voucher delete <id>")
                 return
             try:
-                id = int(args[1])
+                id = int(tokens[1])
                 run_tx(self.conn, vouchers.do_delete_voucher, id)
             except ValueError:
                 print("voucher id must be an integer")
