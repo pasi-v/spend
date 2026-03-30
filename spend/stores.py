@@ -57,7 +57,7 @@ def do_show_store(conn, slug: str):
     if store is not None:
         print(f'{store["slug"]}: {store["name"]}')
     else:
-        print(f'{store["slug"]} not found.')
+        print(f'Store {slug} not found.')
 
 
 def do_update_store(conn, slug: str):
