@@ -1,4 +1,4 @@
-from .producers import *
+from .producers import select_producer
 
 
 def schema():
