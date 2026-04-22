@@ -3,10 +3,10 @@ import shlex
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import sqlite3
-import producers
-import products
-import stores
-import vouchers
+from . import producers
+from . import products
+from . import stores
+from . import vouchers
 
 
 def voucher_add(conn, date_str, store_slug):

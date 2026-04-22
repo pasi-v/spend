@@ -1,8 +1,8 @@
 import sqlite3
-import producers
-import products
-import vouchers
-import stores
+from . import producers
+from . import products
+from . import vouchers
+from . import stores
 
 def get_connection(dbname: str="spend.db"):
     conn = sqlite3.connect(dbname)

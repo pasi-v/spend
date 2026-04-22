@@ -1,5 +1,5 @@
-from db import get_connection, init_db
-from shell import SpendShell
+from .db import get_connection, init_db
+from .shell import SpendShell
 
 
 def main():

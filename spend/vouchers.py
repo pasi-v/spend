@@ -1,6 +1,6 @@
 from datetime import date
-import stores
-import products
+from . import stores
+from . import products
 
 
 def schema():
