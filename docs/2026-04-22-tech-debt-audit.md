@@ -15,7 +15,7 @@ Prioritization uses: **Priority = (Impact + Risk) × (6 − Effort)**, scores 1�
 
 ## Prioritized Debt Items
 
-### P1 — Zero Test Coverage
+### ~~P1 — Zero Test Coverage~~ ✅ Done
 **Category**: Test debt  
 **Score**: (5 + 5) × (6 − 2) = **40**
 
@@ -52,7 +52,7 @@ The same structural patterns appear four times — once per entity (producer, pr
 
 ---
 
-### P4 — Wildcard Import
+### ~~P4 — Wildcard Import~~ ✅ Done
 **Category**: Code debt  
 **Score**: (3 + 3) × (6 − 1) = **30** (low effort, quick win)
 
@@ -102,7 +102,7 @@ There is no migration mechanism. Schema changes require manual SQL edits and wil
 
 ---
 
-### P9 — Missing Project Metadata & Tooling
+### ~~P9 — Missing Project Metadata & Tooling~~ ✅ Done
 **Category**: Infrastructure / Documentation debt  
 **Score**: (2 + 2) × (6 − 1) = **20**
 
@@ -126,8 +126,8 @@ The README is two lines. There is no usage guide, no command reference, no schem
 
 This plan is designed to be done **alongside feature work** — no phase requires a freeze.
 
-### Phase 1 — Unblock Refactoring (1–2 sessions)
-Items: P1, P4, P9
+### ~~Phase 1 — Unblock Refactoring (1–2 sessions)~~ ✅ Done
+Items: ~~P1~~, ~~P4~~, ~~P9~~
 
 Add `pyproject.toml`, fix the wildcard import, write tests for the four domain modules using in-memory SQLite. This is the prerequisite for everything else — nothing else is safe to change until there is a test harness.
 
