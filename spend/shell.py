@@ -9,6 +9,52 @@ import stores
 import vouchers
 
 
+def voucher_add(conn, date_str, store_slug):
+    # 1. Parse date
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        print("Invalid date. Use YYYY-MM-DD")
+        return
+
+    # 2. Validate store
+    try:
+        stores.require_store(conn, store_slug)
+    except ValueError as e:
+        print(e)
+        return
+
+    # 3. Collect voucher lines (interactive)
+    lines = collect_voucher_lines(conn)
+
+    # 4. Final action
+    # TODO: Remove these debug prints or at least print nicely
+    print(f"Adding voucher date: {d}, store: {store_slug}")
+    print(lines)
+
+    vouchers.do_add_voucher(conn, d, store_slug, lines)
+
+
+def voucher_show(conn, id_str):
+    # Vouchers do not have slug, so they have to be shown by database id
+    try:
+        id = int(id_str)
+        vouchers.do_show_voucher(conn, id)
+    except ValueError:
+        print("voucher id must be an integer")
+    return
+
+
+def voucher_delete(conn, id_str):
+    # Vouchers do not have slug, so they have to be deleted by database id
+    try:
+        id = int(id_str)
+        vouchers.do_delete_voucher(conn, id)
+    except ValueError:
+        print("voucher id must be an integer")
+    return
+
+
 commands = {
     "producer": {
         "add": {
@@ -145,52 +191,6 @@ def collect_voucher_lines(conn):
             continue
         lines.append((product_slug, amount))
     return lines
-
-
-def voucher_add(conn, date_str, store_slug):
-    # 1. Parse date
-    try:
-        d = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
-        print("Invalid date. Use YYYY-MM-DD")
-        return
-
-    # 2. Validate store
-    try:
-        stores.require_store(conn, store_slug)
-    except ValueError as e:
-        print(e)
-        return
-
-    # 3. Collect voucher lines (interactive)
-    lines = collect_voucher_lines(conn)
-
-    # 4. Final action
-    # TODO: Remove these debug prints or at least print nicely
-    print(f"Adding voucher date: {d}, store: {store_slug}")
-    print(lines)
-
-    vouchers.do_add_voucher(conn, d, store_slug, lines)
-
-
-def voucher_show(conn, id_str):
-    # Vouchers do not have slug, so they have to be shown by database id
-    try:
-        id = int(id_str)
-        vouchers.do_show_voucher(conn, id)
-    except ValueError:
-        print("voucher id must be an integer")
-    return
-
-
-def voucher_delete(conn, id_str):
-    # Vouchers do not have slug, so they have to be deleted by database id
-    try:
-        id = int(id_str)
-        vouchers.do_delete_voucher(conn, id)
-    except ValueError:
-        print("voucher id must be an integer")
-    return
 
 
 class SpendShell(cmd.Cmd):
