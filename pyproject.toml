@@ -10,6 +10,7 @@ spend = "spend.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=spend.db --cov=spend.producers --cov=spend.products --cov=spend.stores --cov=spend.vouchers --cov-fail-under=60"
 
 [tool.mypy]
 strict = true
