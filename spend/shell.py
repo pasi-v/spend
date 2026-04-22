@@ -241,13 +241,16 @@ class SpendShell(cmd.Cmd):
                 run_tx(self.conn, handler, *values)
             else:
                 handler(self.conn, *values)
-            
+
         except sqlite3.IntegrityError:
-            # keep current behavior for add-like commands for now, refactor later
             if subcommand == "add" and values:
                 logger.warning("%s %s already exists, skipping add.", entity_name.capitalize(), values[0])
             else:
-                raise
+                logger.error("Database integrity error: %s", entity_name, exc_info=True)
+        except sqlite3.OperationalError:
+            logger.error("Database error while handling %s %s.", entity_name, subcommand, exc_info=True)
+        except sqlite3.ProgrammingError:
+            logger.error("Internal error while handling %s %s.", entity_name, subcommand, exc_info=True)
 
         
     def do_producer(self, arg):
