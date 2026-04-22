@@ -1,6 +1,9 @@
+import logging
 from datetime import date
 from . import stores
 from . import products
+
+logger = logging.getLogger(__name__)
 
 
 def schema():
@@ -77,7 +80,7 @@ def do_show_voucher(conn, voucher_id: int):
     """Show a single voucher identified by voucher_id."""
     v = select_voucher(conn, voucher_id)
     if v is None:
-        print(f"Could not find voucher {voucher_id}")
+        logger.warning("Could not find voucher %s.", voucher_id)
         return
     print(f"{v['voucher_id']} {v['date']} {v['amount_cents']/100} {v['product_slug']} {v['store_slug']}")
 

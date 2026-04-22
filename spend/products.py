@@ -1,4 +1,8 @@
+import logging
+
 from .producers import select_producer
+
+logger = logging.getLogger(__name__)
 
 
 def schema():
@@ -72,7 +76,7 @@ def do_add_product(conn, product_slug: str, name: str, producer_slug: str=None):
         if producer is not None:
             producer_id = producer["producer_id"]
         else:
-            print(f"Producer {producer_slug} not found")
+            logger.warning("Producer %s not found.", producer_slug)
             return
 
     insert_product(conn, product_slug, name, producer_id)
@@ -91,14 +95,14 @@ def do_show_product(conn, slug: str):
     if product is not None:
         print(f'{product["product_slug"]}: {product["product_name"]}, producer: {product["producer_slug"]}')
     else:
-        print(f'Product {slug} not found.')
+        logger.warning("Product %s not found.", slug)
 
 
 def do_update_product(conn, slug: str):
     """Input name of product with slug and update it in the database."""
     product = select_product(conn, slug)
     if product is None:
-        print(f'Product {slug} not found.')
+        logger.warning("Product %s not found.", slug)
         return
 
     producer_id = None
@@ -107,7 +111,7 @@ def do_update_product(conn, slug: str):
     if producer_slug != "":
         producer = select_producer(conn, producer_slug)
         if producer is None:
-            print(f"Producer {producer_slug} not found.")
+            logger.warning("Producer %s not found.", producer_slug)
             return
         producer_id = producer["producer_id"]
 

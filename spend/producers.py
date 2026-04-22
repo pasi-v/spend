@@ -1,3 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def schema():
     return """
 CREATE TABLE IF NOT EXISTS producers (
@@ -59,7 +64,7 @@ def do_show_producer(conn, slug):
     if producer is not None:
         print(f'{producer["slug"]}: {producer["name"]}')
     else:
-        print(f'Producer {slug} not found.')
+        logger.warning("Producer %s not found.", slug)
 
 
 def do_update_producer(conn, slug):
@@ -69,7 +74,7 @@ def do_update_producer(conn, slug):
         name = input(f"Enter new name for {slug}: ")
         update_producer(conn, slug, name)
     else:
-        print(f'Producer {slug} not found.')
+        logger.warning("Producer %s not found.", slug)
 
 
 def do_delete_producer(conn, slug):

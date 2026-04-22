@@ -1,4 +1,5 @@
 import cmd
+import logging
 import shlex
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -8,29 +9,30 @@ from . import products
 from . import stores
 from . import vouchers
 
+logger = logging.getLogger(__name__)
+
 
 def voucher_add(conn, date_str, store_slug):
     # 1. Parse date
     try:
         d = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
-        print("Invalid date. Use YYYY-MM-DD")
+        logger.error("Invalid date. Use YYYY-MM-DD")
         return
 
     # 2. Validate store
     try:
         stores.require_store(conn, store_slug)
     except ValueError as e:
-        print(e)
+        logger.error("%s", e)
         return
 
     # 3. Collect voucher lines (interactive)
     lines = collect_voucher_lines(conn)
 
     # 4. Final action
-    # TODO: Remove these debug prints or at least print nicely
-    print(f"Adding voucher date: {d}, store: {store_slug}")
-    print(lines)
+    logger.debug("Adding voucher date: %s, store: %s", d, store_slug)
+    logger.debug("Lines: %s", lines)
 
     vouchers.do_add_voucher(conn, d, store_slug, lines)
 
@@ -41,7 +43,7 @@ def voucher_show(conn, id_str):
         id = int(id_str)
         vouchers.do_show_voucher(conn, id)
     except ValueError:
-        print("voucher id must be an integer")
+        logger.error("voucher id must be an integer")
     return
 
 
@@ -51,7 +53,7 @@ def voucher_delete(conn, id_str):
         id = int(id_str)
         vouchers.do_delete_voucher(conn, id)
     except ValueError:
-        print("voucher id must be an integer")
+        logger.error("voucher id must be an integer")
     return
 
 
@@ -181,13 +183,13 @@ def collect_voucher_lines(conn):
         try:
             products.require_product(conn, product_slug)
         except ValueError as e:
-            print(e)
+            logger.error("%s", e)
             continue
         amount_str = parts[1]
         try:
             amount = Decimal(amount_str)
         except InvalidOperation:
-            print(f"Invalid amount: {amount_str}.  Use '123.45'.")
+            logger.error("Invalid amount: %s.  Use '123.45'.", amount_str)
             continue
         lines.append((product_slug, amount))
     return lines
@@ -243,7 +245,7 @@ class SpendShell(cmd.Cmd):
         except sqlite3.IntegrityError:
             # keep current behavior for add-like commands for now, refactor later
             if subcommand == "add" and values:
-                print(f'{entity_name.capitalize()} {values[0]} already exists, skipping add.')
+                logger.warning("%s %s already exists, skipping add.", entity_name.capitalize(), values[0])
             else:
                 raise
 

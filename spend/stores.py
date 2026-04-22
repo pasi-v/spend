@@ -1,3 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def schema():
     return """
 CREATE TABLE IF NOT EXISTS stores (
@@ -57,7 +62,7 @@ def do_show_store(conn, slug: str):
     if store is not None:
         print(f'{store["slug"]}: {store["name"]}')
     else:
-        print(f'Store {slug} not found.')
+        logger.warning("Store %s not found.", slug)
 
 
 def do_update_store(conn, slug: str):
@@ -67,7 +72,7 @@ def do_update_store(conn, slug: str):
         name = input(f"Enter new name for {slug}: ")
         update_store(conn, slug, name)
     else:
-        print(f'Store {slug} not found.')
+        logger.warning("Store %s not found.", slug)
 
 
 def do_delete_store(conn, slug):
