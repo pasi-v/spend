@@ -210,4 +210,4 @@ __marimo__/
 *.db
 
 # macOS junk
-.DS_Store/
+.DS_Store
