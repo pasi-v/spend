@@ -1,0 +1,31 @@
+erDiagram
+    producers ||--o{ products : "produces"
+    products  ||--o{ vouchers : "recorded in"
+    stores    ||--o{ vouchers : "sold at"
+
+    producers {
+        INTEGER producer_id PK "AUTOINCREMENT"
+        TEXT    slug             "UNIQUE, indexed"
+        TEXT    name
+    }
+
+    products {
+        INTEGER product_id  PK "AUTOINCREMENT"
+        TEXT    slug            "UNIQUE, indexed"
+        TEXT    name
+        INTEGER producer_id FK "-> producers.producer_id ON DELETE RESTRICT"
+    }
+
+    stores {
+        INTEGER store_id PK "AUTOINCREMENT"
+        TEXT    slug         "UNIQUE"
+        TEXT    name
+    }
+
+    vouchers {
+        INTEGER voucher_id   PK "AUTOINCREMENT"
+        TEXT    date            "NOT NULL, CHECK YYYY-MM-DD"
+        INTEGER amount_cents    "NOT NULL"
+        INTEGER product_id   FK "-> products.product_id ON DELETE RESTRICT, indexed"
+        INTEGER store_id     FK "-> stores.store_id   ON DELETE RESTRICT, indexed"
+    }
