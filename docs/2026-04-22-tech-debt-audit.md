@@ -112,7 +112,7 @@ There is no `pyproject.toml`, `setup.py`, or `requirements.txt`. The Python vers
 
 ---
 
-### P10 — README and Documentation
+### ~~P10 — README and Documentation~~ ✅ Done
 **Category**: Documentation debt  
 **Score**: (2 + 1) × (6 − 1) = **15**
 
@@ -142,7 +142,7 @@ Items: P2, P3, P8
 Extract CRUD patterns into shared helpers. Move `input()` calls out of domain modules. Add a migration runner before the next schema change. These are the most impactful changes for long-term maintainability.
 
 ### Phase 4 — Polish (ongoing)
-Items: P10
+Items: ~~P10~~
 
 Improve README, add readline auto-completion (from `TODO.md`), document schema with an ER diagram.
 
