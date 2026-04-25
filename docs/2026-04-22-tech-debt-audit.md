@@ -112,6 +112,26 @@ There is no `pyproject.toml`, `setup.py`, or `requirements.txt`. The Python vers
 
 ---
 
+### P11 — Ruff Configured But Not Installed Or Used
+**Category**: Infrastructure debt  
+**Score**: (2 + 2) × (6 − 1) = **20**
+
+`pyproject.toml` has a `[tool.ruff]` section selecting `E`, `F`, `I`, and `W` rules, but `ruff` is not in `dev-requirements.txt` and has never been run. The configuration is dormant; nothing surfaces unused imports, import ordering issues, or whitespace problems that ruff would catch. The original P9 fix added the config block but stopped short of actually installing or running the tool.
+
+*Fix*: Add `ruff` to `dev-requirements.txt`, run `ruff check .` to surface issues, fix or auto-fix (`ruff check --fix .`) what it flags, then keep it as a routine check alongside mypy and pytest.
+
+---
+
+### P12 — No Continuous Integration
+**Category**: Infrastructure debt  
+**Score**: (4 + 3) × (6 − 2) = **28**
+
+There is no CI pipeline (no `.github/workflows`, no other CI config). mypy strict mode, the 60% pytest coverage threshold, and (once P11 is fixed) ruff are all configured locally but nothing enforces them on push or pull request. Regressions in type safety, coverage, or lint can land silently if a contributor forgets to run the checks before pushing.
+
+*Fix*: Add a GitHub Actions workflow that installs `dev-requirements.txt` and runs `ruff check .`, `mypy spend tests`, and `pytest`. Configure branch protection on `master` to require the workflow green before merge. Best done after P11 so all three checks are wired in from the start.
+
+---
+
 ### ~~P10 — README and Documentation~~ ✅ Done
 **Category**: Documentation debt  
 **Score**: (2 + 1) × (6 − 1) = **15**
@@ -136,12 +156,17 @@ Items: ~~P5~~, ~~P6~~, P7
 
 Fix error handling and remove debug prints. Add type hints to domain modules. Extract date format and currency constants. These are surgical changes, each independently safe once Phase 1 is done.
 
-### Phase 3 — Architectural Improvements (3–4 sessions)
+### Phase 3 — Enforcement & CI (1 session)
+Items: P11, P12
+
+Install and run ruff, fix what it flags, then add a GitHub Actions workflow that runs ruff, mypy, and pytest on every push and pull request. Order: P11 before P12 so the workflow can include ruff from the start. Done after Phase 2 (so all checks pass cleanly when CI first runs) and before Phase 4 (so the architectural refactors land under a safety net).
+
+### Phase 4 — Architectural Improvements (3–4 sessions)
 Items: P2, P3, P8
 
-Extract CRUD patterns into shared helpers. Move `input()` calls out of domain modules. Add a migration runner before the next schema change. These are the most impactful changes for long-term maintainability.
+Extract CRUD patterns into shared helpers. Move `input()` calls out of domain modules. Add a migration runner before the next schema change. These are the most impactful changes for long-term maintainability — and the riskiest, which is why CI from Phase 3 should already be guarding them.
 
-### Phase 4 — Polish (ongoing)
+### Phase 5 — Polish (ongoing)
 Items: ~~P10~~
 
 Improve README, add readline auto-completion (from `TODO.md`), document schema with an ER diagram.
@@ -154,11 +179,13 @@ Improve README, add readline auto-completion (from `TODO.md`), document schema w
 |---|------|----------|---------------|-------|
 | P1 | Zero test coverage | Test | 40 | 1 |
 | P4 | Wildcard import | Code | 30 | 1 |
+| P12 | No continuous integration | Infrastructure | 28 | 3 |
 | P5 | Inadequate error handling | Code | 24 | 2 |
-| P2 | CRUD code duplication | Code | 21 | 3 |
-| P3 | Mixed I/O and domain logic | Architecture | 21 | 3 |
-| P8 | No schema versioning | Architecture | 21 | 3 |
+| P2 | CRUD code duplication | Code | 21 | 4 |
+| P3 | Mixed I/O and domain logic | Architecture | 21 | 4 |
+| P8 | No schema versioning | Architecture | 21 | 4 |
 | P6 | No type hints | Code | 20 | 2 |
 | P7 | Hardcoded values | Code | 20 | 2 |
 | P9 | Missing project metadata | Infrastructure | 20 | 1 |
-| P10 | Minimal README | Documentation | 15 | 4 |
+| P11 | Ruff configured but unused | Infrastructure | 20 | 3 |
+| P10 | Minimal README | Documentation | 15 | 5 |
