@@ -1,4 +1,6 @@
 import logging
+import sqlite3
+from decimal import Decimal
 from datetime import date
 from . import stores
 from . import products
@@ -6,7 +8,7 @@ from . import products
 logger = logging.getLogger(__name__)
 
 
-def schema():
+def schema() -> str:
     sql = """
 CREATE TABLE IF NOT EXISTS vouchers (
     voucher_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,13 +31,20 @@ ON vouchers(store_id);
     return sql
 
 
-def insert_voucher_line(conn, product_id: int, amount_cents: int, d: date, store_id: int):
+def insert_voucher_line(conn: sqlite3.Connection,
+                        product_id: int,
+                        amount_cents: int,
+                        d: date,
+                        store_id: int) -> None:
     sql = "INSERT INTO vouchers (date, amount_cents, product_id, store_id) VALUES (?, ?, ?, ?)"
     values = (d.isoformat(), amount_cents, product_id, store_id)
     conn.execute(sql, values)
 
 
-def do_add_voucher(conn, d: date, store_slug: str, lines: list):
+def do_add_voucher(conn: sqlite3.Connection,
+                   d: date,
+                   store_slug: str,
+                   lines: list[tuple[str, Decimal]]) -> None:
     store = stores.require_store(conn, store_slug)
     if store is None:
         raise ValueError(f"Unknown store: {store_slug}")
@@ -48,7 +57,7 @@ def do_add_voucher(conn, d: date, store_slug: str, lines: list):
         insert_voucher_line(conn, product_id, amount_cents, d, store["store_id"])
 
 
-def select_vouchers(conn):
+def select_vouchers(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     sql = """SELECT v.voucher_id, v.date, v.amount_cents, p.slug AS product_slug, s.slug AS store_slug
     FROM vouchers as v
     LEFT JOIN products as p ON v.product_id = p.product_id
@@ -58,13 +67,13 @@ def select_vouchers(conn):
     return res.fetchall()
 
     
-def do_list_vouchers(conn):
+def do_list_vouchers(conn: sqlite3.Connection) -> None:
     res = select_vouchers(conn)
     for v in res:
         print(f"{v['voucher_id']} {v['date']} {v['amount_cents']/100} {v['product_slug']} {v['store_slug']}")
 
 
-def select_voucher(conn, voucher_id: int):
+def select_voucher(conn: sqlite3.Connection, voucher_id: int) -> sqlite3.Row | None:
     sql = """SELECT v.voucher_id, v.date, v.amount_cents, p.slug AS product_slug, s.slug AS store_slug
     FROM vouchers as v
     LEFT JOIN products as p ON v.product_id = p.product_id
@@ -73,10 +82,11 @@ def select_voucher(conn, voucher_id: int):
 
     values = (voucher_id, )
     res = conn.execute(sql, values)
-    return res.fetchone()
+    row: sqlite3.Row | None = res.fetchone()
+    return row
 
 
-def do_show_voucher(conn, voucher_id: int):
+def do_show_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
     """Show a single voucher identified by voucher_id."""
     v = select_voucher(conn, voucher_id)
     if v is None:
@@ -85,12 +95,12 @@ def do_show_voucher(conn, voucher_id: int):
     print(f"{v['voucher_id']} {v['date']} {v['amount_cents']/100} {v['product_slug']} {v['store_slug']}")
 
 
-def delete_voucher(conn, voucher_id: int):
+def delete_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
     sql = "DELETE FROM vouchers WHERE voucher_id = ?"
     values = (voucher_id, )
     conn.execute(sql, values)
 
 
-def do_delete_voucher(conn, voucher_id: int):
+def do_delete_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
     """Delete voucher with id from the database."""
     delete_voucher(conn, voucher_id)
