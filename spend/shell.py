@@ -12,13 +12,15 @@ from . import products
 from . import stores
 from . import vouchers
 
+DATE_FORMAT = "%Y-%m-%d"
+
 logger = logging.getLogger(__name__)
 
 
 def voucher_add(conn: sqlite3.Connection, date_str: str, store_slug: str) -> None:
     # 1. Parse date
     try:
-        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+        d = datetime.strptime(date_str, DATE_FORMAT).date()
     except ValueError:
         logger.error("Invalid date. Use YYYY-MM-DD")
         return
