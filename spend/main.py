@@ -5,7 +5,7 @@ from .db import get_connection, init_db
 from .shell import SpendShell
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Personal spending tracker")
     parser.add_argument("--verbose", action="store_true", help="Enable debug output")
     args = parser.parse_args()
