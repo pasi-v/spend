@@ -4,6 +4,9 @@ import shlex
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import sqlite3
+from collections.abc import Callable
+from typing import TypedDict
+
 from . import producers
 from . import products
 from . import stores
@@ -12,7 +15,7 @@ from . import vouchers
 logger = logging.getLogger(__name__)
 
 
-def voucher_add(conn, date_str, store_slug):
+def voucher_add(conn: sqlite3.Connection, date_str: str, store_slug: str) -> None:
     # 1. Parse date
     try:
         d = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -37,7 +40,7 @@ def voucher_add(conn, date_str, store_slug):
     vouchers.do_add_voucher(conn, d, store_slug, lines)
 
 
-def voucher_show(conn, id_str):
+def voucher_show(conn: sqlite3.Connection, id_str: str) -> None:
     # Vouchers do not have slug, so they have to be shown by database id
     try:
         id = int(id_str)
@@ -47,7 +50,7 @@ def voucher_show(conn, id_str):
     return
 
 
-def voucher_delete(conn, id_str):
+def voucher_delete(conn: sqlite3.Connection, id_str: str) -> None:
     # Vouchers do not have slug, so they have to be deleted by database id
     try:
         id = int(id_str)
@@ -57,7 +60,13 @@ def voucher_delete(conn, id_str):
     return
 
 
-commands = {
+class CommandSpec(TypedDict):
+    handler: Callable[..., None]
+    args: list[str]
+    transaction: bool
+
+
+commands: dict[str, dict[str, CommandSpec]] = {
     "producer": {
         "add": {
             "handler": producers.do_add_producer,
@@ -164,11 +173,11 @@ commands = {
 }
 
 
-def run_tx(conn, fn, *args):
+def run_tx(conn: sqlite3.Connection, fn: Callable[..., None], *args: str) -> None:
     with conn:
-        return fn(conn, *args)
+        fn(conn, *args)
 
-def collect_voucher_lines(conn):
+def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[str, Decimal]]:
     lines = []
     print("Adding voucher lines: <product_slug> <amount in €.cc> (empty line to end)")
     while True:
@@ -201,11 +210,11 @@ class SpendShell(cmd.Cmd):
     )
     prompt = "(spend) "
 
-    def __init__(self, conn):
+    def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__()
         self.conn = conn
 
-    def dispatch(self, entity_name: str, arg: str):
+    def dispatch(self, entity_name: str, arg: str) -> None:
         args = shlex.split(arg)
         entity_commands = commands[entity_name]
 
@@ -253,31 +262,31 @@ class SpendShell(cmd.Cmd):
             logger.error("Internal error while handling %s %s.", entity_name, subcommand, exc_info=True)
 
         
-    def do_producer(self, arg):
+    def do_producer(self, arg: str) -> None:
         """Add, list, show, delete or update producer."""
         self.dispatch("producer", arg)
 
             
-    def do_product(self, arg):
+    def do_product(self, arg: str) -> None:
         """Add, list, show, delete or update product."""
         self.dispatch("product", arg)
 
             
-    def do_store(self, arg):
+    def do_store(self, arg: str) -> None:
         """Add, list, show, delete or update store."""
         self.dispatch("store", arg)
 
 
-    def do_voucher(self, arg):
+    def do_voucher(self, arg: str) -> None:
         """Add, list, show, delete or update voucher."""
         self.dispatch("voucher", arg)
 
     @staticmethod
-    def do_quit(_):
+    def do_quit(_: str) -> bool:
         """Stop spending and exit."""
         return True
 
     @staticmethod
-    def do_exit(_):
+    def do_exit(_: str) -> bool:
         """Stop spending and exit."""
         return True
