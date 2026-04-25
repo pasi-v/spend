@@ -72,7 +72,7 @@ The same structural patterns appear four times — once per entity (producer, pr
 
 ---
 
-### P6 — No Type Hints
+### ~~P6 — No Type Hints~~ ✅ Done
 **Category**: Code debt  
 **Score**: (3 + 2) × (6 − 2) = **20**
 
@@ -132,7 +132,7 @@ Items: ~~P1~~, ~~P4~~, ~~P9~~
 Add `pyproject.toml`, fix the wildcard import, write tests for the four domain modules using in-memory SQLite. This is the prerequisite for everything else — nothing else is safe to change until there is a test harness.
 
 ### Phase 2 — Clean Up Code Structure (2–3 sessions)
-Items: P5, P6, P7
+Items: ~~P5~~, ~~P6~~, P7
 
 Fix error handling and remove debug prints. Add type hints to domain modules. Extract date format and currency constants. These are surgical changes, each independently safe once Phase 1 is done.
 
