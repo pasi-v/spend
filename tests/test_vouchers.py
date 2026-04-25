@@ -10,6 +10,8 @@ from spend.vouchers import (
     select_voucher,
     delete_voucher,
     do_add_voucher,
+    to_cents,
+    from_cents,
 )
 
 
@@ -78,3 +80,42 @@ def test_do_add_voucher_multiple_lines(conn):
     do_add_voucher(conn, date(2026, 4, 1), "lidl", lines)
     rows = select_vouchers(conn)
     assert len(rows) == 2
+
+
+def test_to_cents_preserves_fractional_part():
+    # Regression: int(Decimal("2.99")) truncates to 2 before * 100, giving 200.
+    assert to_cents(Decimal("2.99")) == 299
+
+
+def test_to_cents_whole_euros():
+    assert to_cents(Decimal("5")) == 500
+    assert to_cents(Decimal("5.00")) == 500
+
+
+def test_to_cents_zero():
+    assert to_cents(Decimal("0")) == 0
+
+
+def test_to_cents_single_decimal():
+    assert to_cents(Decimal("1.5")) == 150
+
+
+def test_to_cents_rounds_half_up():
+    # Sub-cent input should round half-up, not truncate or banker's-round.
+    assert to_cents(Decimal("12.345")) == 1235
+    assert to_cents(Decimal("12.344")) == 1234
+    assert to_cents(Decimal("0.005")) == 1
+    # Banker's rounding would give 12 here; ROUND_HALF_UP gives 13.
+    assert to_cents(Decimal("0.125")) == 13
+
+
+def test_from_cents_basic():
+    assert from_cents(299) == Decimal("2.99")
+    assert from_cents(0) == Decimal("0")
+    assert from_cents(100) == Decimal("1")
+
+
+def test_from_cents_round_trip():
+    for amount in ["0", "0.01", "1.50", "2.99", "12345.67"]:
+        d = Decimal(amount)
+        assert from_cents(to_cents(d)) == d

@@ -1,11 +1,19 @@
 import logging
 import sqlite3
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import date
 from . import stores
 from . import products
 
 logger = logging.getLogger(__name__)
+
+
+def to_cents(amount: Decimal) -> int:
+    return int((amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def from_cents(amount: int) -> Decimal:
+    return Decimal(amount) / 100
 
 
 def schema() -> str:
@@ -53,7 +61,7 @@ def do_add_voucher(conn: sqlite3.Connection,
         product_slug = line[0]
         amount_decimal = line[1]
         product_id = products.require_product(conn, product_slug)["product_id"]
-        amount_cents = int(amount_decimal * 100)
+        amount_cents = to_cents(amount_decimal)
         insert_voucher_line(conn, product_id, amount_cents, d, store["store_id"])
 
 
@@ -70,7 +78,7 @@ def select_vouchers(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 def do_list_vouchers(conn: sqlite3.Connection) -> None:
     res = select_vouchers(conn)
     for v in res:
-        print(f"{v['voucher_id']} {v['date']} {v['amount_cents']/100} {v['product_slug']} {v['store_slug']}")
+        print(f"{v['voucher_id']} {v['date']} {from_cents(v['amount_cents'])} {v['product_slug']} {v['store_slug']}")
 
 
 def select_voucher(conn: sqlite3.Connection, voucher_id: int) -> sqlite3.Row | None:
@@ -92,7 +100,7 @@ def do_show_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
     if v is None:
         logger.warning("Could not find voucher %s.", voucher_id)
         return
-    print(f"{v['voucher_id']} {v['date']} {v['amount_cents']/100} {v['product_slug']} {v['store_slug']}")
+    print(f"{v['voucher_id']} {v['date']} {from_cents(v['amount_cents'])} {v['product_slug']} {v['store_slug']}")
 
 
 def delete_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
