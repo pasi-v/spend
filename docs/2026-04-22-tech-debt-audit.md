@@ -86,9 +86,11 @@ Type hints exist on roughly 2–3% of function signatures (18 instances across 6
 **Category**: Code debt  
 **Score**: (2 + 2) × (6 − 1) = **20**
 
-The database filename `"spend.db"` is hardcoded in `main.py:6` and as a default parameter in `db.py:7`. The date format `"%Y-%m-%d"` is a string literal used in multiple places. Currency conversion (`* 100`, `/ 100`) is scattered across `vouchers.py` with no named constant or abstraction.
+The database filename `"spend.db"` is hardcoded in `main.py:6` and as a default parameter in `db.py:7`. Currency conversion (`* 100`, `/ 100`) is scattered across `vouchers.py` with no named constant or abstraction.
 
-*Fix*: Define a `DATE_FORMAT` constant. Add a `Decimal`-to-cents helper. Accept the database path via a CLI argument or environment variable.
+A `DATE_FORMAT` constant was extracted in `shell.py:15`, but on review the original audit overstated this sub-item: the format string `"%Y-%m-%d"` has only one parse site (`shell.py:23`). Everywhere else, dates flow through `date.isoformat()` → SQLite TEXT → direct print, so no explicit format is needed. The constant is fine where it is; promoting it to a shared module isn't justified until a second consumer appears.
+
+*Fix*: Add a `Decimal`-to-cents helper. Accept the database path via a CLI argument or environment variable.
 
 ---
 
