@@ -86,11 +86,13 @@ Type hints exist on roughly 2–3% of function signatures (18 instances across 6
 **Category**: Code debt  
 **Score**: (2 + 2) × (6 − 1) = **20**
 
-The database filename `"spend.db"` is hardcoded in `main.py:6` and as a default parameter in `db.py:7`. Currency conversion (`* 100`, `/ 100`) is scattered across `vouchers.py` with no named constant or abstraction.
+The database filename `"spend.db"` is hardcoded in `main.py:6` and as a default parameter in `db.py:7`.
 
 A `DATE_FORMAT` constant was extracted in `shell.py:15`, but on review the original audit overstated this sub-item: the format string `"%Y-%m-%d"` has only one parse site (`shell.py:23`). Everywhere else, dates flow through `date.isoformat()` → SQLite TEXT → direct print, so no explicit format is needed. The constant is fine where it is; promoting it to a shared module isn't justified until a second consumer appears.
 
-*Fix*: Add a `Decimal`-to-cents helper. Accept the database path via a CLI argument or environment variable.
+`to_cents` / `from_cents` helpers were added in `vouchers.py:11-16` with `ROUND_HALF_UP` for sub-cent input. The first implementation had an order-of-operations bug (`int(amount) * 100` truncated `Decimal("2.99")` to 200 instead of 299) — caught by the existing `test_do_add_voucher`, fixed to `int((amount * 100).quantize(...))`, and pinned by new regression tests in `tests/test_vouchers.py` covering the truncation case, half-up rounding, and round-trip stability.
+
+*Fix*: Accept the database path via a CLI argument or environment variable.
 
 ---
 
