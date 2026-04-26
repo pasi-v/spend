@@ -16,6 +16,10 @@ def from_cents(amount: int) -> Decimal:
     return Decimal(amount) / 100
 
 
+def format_voucher_row(v: sqlite3.Row) -> str:
+    return f"{v['voucher_id']} {v['date']} {from_cents(v['amount_cents'])} {v['product_slug']} {v['store_slug']}"
+
+
 def schema() -> str:
     sql = """
 CREATE TABLE IF NOT EXISTS vouchers (
@@ -78,7 +82,7 @@ def select_vouchers(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 def do_list_vouchers(conn: sqlite3.Connection) -> None:
     res = select_vouchers(conn)
     for v in res:
-        print(f"{v['voucher_id']} {v['date']} {from_cents(v['amount_cents'])} {v['product_slug']} {v['store_slug']}")
+        print(format_voucher_row(v))
 
 
 def select_voucher(conn: sqlite3.Connection, voucher_id: int) -> sqlite3.Row | None:
@@ -100,8 +104,7 @@ def do_show_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
     if v is None:
         logger.warning("Could not find voucher %s.", voucher_id)
         return
-    print(f"{v['voucher_id']} {v['date']} {from_cents(v['amount_cents'])} {v['product_slug']} {v['store_slug']}")
-
+    print(format_voucher_row(v))
 
 def delete_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
     sql = "DELETE FROM vouchers WHERE voucher_id = ?"

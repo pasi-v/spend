@@ -7,6 +7,7 @@ from spend.stores import insert_store, select_store
 from spend.vouchers import (
     delete_voucher,
     do_add_voucher,
+    format_voucher_row,
     from_cents,
     insert_voucher_line,
     select_voucher,
@@ -119,3 +120,23 @@ def test_from_cents_round_trip():
     for amount in ["0", "0.01", "1.50", "2.99", "12345.67"]:
         d = Decimal(amount)
         assert from_cents(to_cents(d)) == d
+
+
+def test_format_voucher_row(conn):
+    _seed(conn)
+    product = select_product(conn, "milk")
+    store = select_store(conn, "lidl")
+    insert_voucher_line(conn, product["product_id"], 299, date(2026, 1, 15), store["store_id"])
+    row = select_vouchers(conn)[0]
+    assert format_voucher_row(row) == f"{row['voucher_id']} 2026-01-15 2.99 milk lidl"
+
+
+def test_format_voucher_row_uses_from_cents(conn):
+    # Pins that the amount is rendered via from_cents (500 → "5"), not the raw cents column.
+    _seed(conn)
+    product = select_product(conn, "milk")
+    store = select_store(conn, "lidl")
+    insert_voucher_line(conn, product["product_id"], 500, date(2026, 2, 1), store["store_id"])
+    row = select_vouchers(conn)[0]
+    assert " 5 " in format_voucher_row(row)
+    assert " 500 " not in format_voucher_row(row)
