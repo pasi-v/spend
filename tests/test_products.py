@@ -29,8 +29,10 @@ def test_insert_normalizes_slug(conn):
 def test_insert_with_producer(conn):
     insert_producer(conn, "farm", "The Farm")
     producer = select_producer(conn, "farm")
+    assert producer is not None
     insert_product(conn, "milk", "Whole Milk", producer["producer_id"])
     row = select_product(conn, "milk")
+    assert row is not None
     assert row["producer_slug"] == "farm"
     assert row["producer_name"] == "The Farm"
 
@@ -38,6 +40,7 @@ def test_insert_with_producer(conn):
 def test_insert_without_producer(conn):
     insert_product(conn, "milk", "Whole Milk")
     row = select_product(conn, "milk")
+    assert row is not None
     assert row["producer_slug"] is None
 
 
@@ -48,9 +51,11 @@ def test_select_product_not_found(conn):
 def test_update_product(conn):
     insert_producer(conn, "farm", "The Farm")
     producer = select_producer(conn, "farm")
+    assert producer is not None
     insert_product(conn, "milk", "Whole Milk")
     update_product(conn, "milk", "Skim Milk", producer["producer_id"])
     row = select_product(conn, "milk")
+    assert row is not None
     assert row["product_name"] == "Skim Milk"
     assert row["producer_slug"] == "farm"
 

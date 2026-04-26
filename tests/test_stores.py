@@ -28,6 +28,7 @@ def test_insert_normalizes_slug(conn):
 def test_select_store_by_slug(conn):
     insert_store(conn, "lidl", "Lidl")
     row = select_store(conn, "lidl")
+    assert row is not None
     assert row["name"] == "Lidl"
     assert row["store_id"] is not None
 
@@ -47,6 +48,7 @@ def test_update_store(conn):
     insert_store(conn, "lidl", "Lidl")
     update_store(conn, "lidl", "Lidl Finland")
     row = select_store(conn, "lidl")
+    assert row is not None
     assert row["name"] == "Lidl Finland"
 
 

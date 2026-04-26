@@ -15,6 +15,10 @@ addopts = "--cov=spend.db --cov=spend.producers --cov=spend.products --cov=spend
 [tool.mypy]
 strict = true
 
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
 [tool.ruff]
 target-version = "py310"
 

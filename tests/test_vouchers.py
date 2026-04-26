@@ -1,3 +1,4 @@
+import sqlite3
 from datetime import date
 from decimal import Decimal
 
@@ -16,10 +17,11 @@ from spend.vouchers import (
 )
 
 
-def _seed(conn):
+def _seed(conn: sqlite3.Connection) -> None:
     """Insert a producer, product, and store for voucher tests."""
     insert_producer(conn, "farm", "The Farm")
     producer = select_producer(conn, "farm")
+    assert producer is not None
     insert_product(conn, "milk", "Whole Milk", producer["producer_id"])
     insert_store(conn, "lidl", "Lidl")
 
@@ -28,6 +30,8 @@ def test_insert_and_select_all(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
+    assert product is not None
+    assert store is not None
     insert_voucher_line(
         conn,
         product["product_id"],
@@ -46,6 +50,8 @@ def test_select_voucher_by_id(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
+    assert product is not None
+    assert store is not None
     insert_voucher_line(
         conn,
         product["product_id"],
@@ -55,6 +61,7 @@ def test_select_voucher_by_id(conn):
     rows = select_vouchers(conn)
     vid = rows[0]["voucher_id"]
     row = select_voucher(conn, vid)
+    assert row is not None
     assert row["amount_cents"] == 500
     assert row["product_slug"] == "milk"
 
@@ -67,6 +74,8 @@ def test_delete_voucher(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
+    assert product is not None
+    assert store is not None
     insert_voucher_line(
         conn,
         product["product_id"],
@@ -141,6 +150,8 @@ def test_format_voucher_row(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
+    assert product is not None
+    assert store is not None
     insert_voucher_line(
         conn,
         product["product_id"],
@@ -157,6 +168,8 @@ def test_format_voucher_row_uses_from_cents(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
+    assert product is not None
+    assert store is not None
     insert_voucher_line(
         conn,
         product["product_id"],

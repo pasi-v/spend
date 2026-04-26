@@ -25,6 +25,7 @@ def test_insert_normalizes_slug(conn):
 def test_select_producer_by_slug(conn):
     insert_producer(conn, "acme", "Acme Corp")
     row = select_producer(conn, "acme")
+    assert row is not None
     assert row["name"] == "Acme Corp"
     assert row["producer_id"] is not None
 
@@ -45,6 +46,7 @@ def test_update_producer(conn):
     insert_producer(conn, "acme", "Acme Corp")
     update_producer(conn, "acme", "Acme Inc")
     row = select_producer(conn, "acme")
+    assert row is not None
     assert row["name"] == "Acme Inc"
 
 
