@@ -114,13 +114,11 @@ There is no `pyproject.toml`, `setup.py`, or `requirements.txt`. The Python vers
 
 ---
 
-### P11 — Ruff Configured But Not Installed Or Used
+### ~~P11 — Ruff Configured But Not Installed Or Used~~ ✅ Done
 **Category**: Infrastructure debt  
 **Score**: (2 + 2) × (6 − 1) = **20**
 
-`pyproject.toml` has a `[tool.ruff]` section selecting `E`, `F`, `I`, and `W` rules, but `ruff` is not in `dev-requirements.txt` and has never been run. The configuration is dormant; nothing surfaces unused imports, import ordering issues, or whitespace problems that ruff would catch. The original P9 fix added the config block but stopped short of actually installing or running the tool.
-
-*Fix*: Add `ruff` to `dev-requirements.txt`, run `ruff check .` to surface issues, fix or auto-fix (`ruff check --fix .`) what it flags, then keep it as a routine check alongside mypy and pytest.
+Ruff added to `dev-requirements.txt`, `ruff check .` run and findings cleared. A new `check.sh` runs ruff, mypy, and the test suite in that order with fail-fast (`set -e`); the README's Development section points contributors at it as the pre-commit check. Mypy strict mode is now also actually applied to `tests/` (via `mypy spend tests` in the script) — this surfaced 80 errors that the prior P6 work had missed; addressed with a `[[tool.mypy.overrides]]` block in `pyproject.toml` that relaxes `disallow_untyped_defs` for `tests.*` plus `assert ... is not None` guards before each `Row | None` indexing site in the test suite.
 
 ---
 
