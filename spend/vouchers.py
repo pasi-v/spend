@@ -17,7 +17,13 @@ def from_cents(amount: int) -> Decimal:
 
 
 def format_voucher_row(v: sqlite3.Row) -> str:
-    return f"{v['voucher_id']} {v['date']} {from_cents(v['amount_cents'])} {v['product_slug']} {v['store_slug']}"
+    voucher_id = v["voucher_id"]
+    amount = from_cents(v["amount_cents"])
+    d = v["date"]
+    product_slug = v["product_slug"]
+    store_slug = v["store_slug"]
+
+    return f"{voucher_id} {d} {amount} {product_slug} {store_slug}"
 
 
 def schema() -> str:
@@ -48,7 +54,9 @@ def insert_voucher_line(conn: sqlite3.Connection,
                         amount_cents: int,
                         d: date,
                         store_id: int) -> None:
-    sql = "INSERT INTO vouchers (date, amount_cents, product_id, store_id) VALUES (?, ?, ?, ?)"
+    sql = """
+INSERT INTO vouchers (date, amount_cents, product_id, store_id)
+VALUES (?, ?, ?, ?)"""
     values = (d.isoformat(), amount_cents, product_id, store_id)
     conn.execute(sql, values)
 
@@ -70,10 +78,16 @@ def do_add_voucher(conn: sqlite3.Connection,
 
 
 def select_vouchers(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    sql = """SELECT v.voucher_id, v.date, v.amount_cents, p.slug AS product_slug, s.slug AS store_slug
-    FROM vouchers as v
-    LEFT JOIN products as p ON v.product_id = p.product_id
-    LEFT JOIN stores as s ON v.store_id = s.store_id"""
+    sql = """
+SELECT
+    v.voucher_id
+  , v.date
+  , v.amount_cents
+  , p.slug AS product_slug
+  , s.slug AS store_slug
+FROM vouchers as v
+LEFT JOIN products as p ON v.product_id = p.product_id
+LEFT JOIN stores as s ON v.store_id = s.store_id"""
 
     res = conn.execute(sql)
     return res.fetchall()
@@ -86,11 +100,17 @@ def do_list_vouchers(conn: sqlite3.Connection) -> None:
 
 
 def select_voucher(conn: sqlite3.Connection, voucher_id: int) -> sqlite3.Row | None:
-    sql = """SELECT v.voucher_id, v.date, v.amount_cents, p.slug AS product_slug, s.slug AS store_slug
-    FROM vouchers as v
-    LEFT JOIN products as p ON v.product_id = p.product_id
-    LEFT JOIN stores as s ON v.store_id = s.store_id
-    WHERE voucher_id = ?"""
+    sql = """
+SELECT
+    v.voucher_id
+  , v.date
+  , v.amount_cents
+  , p.slug AS product_slug
+  , s.slug AS store_slug
+FROM vouchers as v
+LEFT JOIN products as p ON v.product_id = p.product_id
+LEFT JOIN stores as s ON v.store_id = s.store_id
+WHERE voucher_id = ?"""
 
     values = (voucher_id, )
     res = conn.execute(sql, values)
