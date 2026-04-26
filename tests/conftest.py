@@ -1,4 +1,5 @@
 import pytest
+
 from spend.db import get_connection, init_db
 
 

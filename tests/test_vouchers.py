@@ -5,13 +5,13 @@ from spend.producers import insert_producer, select_producer
 from spend.products import insert_product, select_product
 from spend.stores import insert_store, select_store
 from spend.vouchers import (
-    insert_voucher_line,
-    select_vouchers,
-    select_voucher,
     delete_voucher,
     do_add_voucher,
-    to_cents,
     from_cents,
+    insert_voucher_line,
+    select_voucher,
+    select_vouchers,
+    to_cents,
 )
 
 

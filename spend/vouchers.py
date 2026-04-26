@@ -1,9 +1,9 @@
 import logging
 import sqlite3
-from decimal import Decimal, ROUND_HALF_UP
 from datetime import date
-from . import stores
-from . import products
+from decimal import ROUND_HALF_UP, Decimal
+
+from . import products, stores
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ def select_vouchers(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     res = conn.execute(sql)
     return res.fetchall()
 
-    
+
 def do_list_vouchers(conn: sqlite3.Connection) -> None:
     res = select_vouchers(conn)
     for v in res:

@@ -1,16 +1,13 @@
 import cmd
 import logging
 import shlex
-from datetime import datetime
-from decimal import Decimal, InvalidOperation
 import sqlite3
 from collections.abc import Callable
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from typing import TypedDict
 
-from . import producers
-from . import products
-from . import stores
-from . import vouchers
+from . import producers, products, stores, vouchers
 
 DATE_FORMAT = "%Y-%m-%d"
 
@@ -263,17 +260,17 @@ class SpendShell(cmd.Cmd):
         except sqlite3.ProgrammingError:
             logger.error("Internal error while handling %s %s.", entity_name, subcommand, exc_info=True)
 
-        
+
     def do_producer(self, arg: str) -> None:
         """Add, list, show, delete or update producer."""
         self.dispatch("producer", arg)
 
-            
+
     def do_product(self, arg: str) -> None:
         """Add, list, show, delete or update product."""
         self.dispatch("product", arg)
 
-            
+
     def do_store(self, arg: str) -> None:
         """Add, list, show, delete or update store."""
         self.dispatch("store", arg)

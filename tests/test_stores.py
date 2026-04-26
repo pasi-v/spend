@@ -1,11 +1,12 @@
 import pytest
+
 from spend.stores import (
-    insert_store,
-    select_stores,
-    select_store,
-    update_store,
     delete_store,
+    insert_store,
     require_store,
+    select_store,
+    select_stores,
+    update_store,
 )
 
 

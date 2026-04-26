@@ -1,9 +1,9 @@
 from spend.producers import (
-    insert_producer,
-    select_producers,
-    select_producer,
-    update_producer,
     delete_producer,
+    insert_producer,
+    select_producer,
+    select_producers,
+    update_producer,
 )
 
 

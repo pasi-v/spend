@@ -70,7 +70,7 @@ def require_product(conn: sqlite3.Connection, slug: str) -> sqlite3.Row:
     if product is None:
         raise ValueError(f"Unknown product: {slug}")
     return product
-    
+
 
 def do_add_product(conn: sqlite3.Connection,
                    product_slug: str,
@@ -115,7 +115,7 @@ def do_update_product(conn: sqlite3.Connection, slug: str) -> None:
 
     producer_id = None
     name = input(f"Enter new name for {slug}: ")
-    producer_slug = input(f"Enter new producer slug (empty to set null): ").strip()
+    producer_slug = input("Enter new producer slug (empty to set null): ").strip()
     if producer_slug != "":
         producer = select_producer(conn, producer_slug)
         if producer is None:

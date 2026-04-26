@@ -1,12 +1,13 @@
 import pytest
+
 from spend.producers import insert_producer, select_producer
 from spend.products import (
-    insert_product,
-    select_products,
-    select_product,
-    update_product,
     delete_product,
+    insert_product,
     require_product,
+    select_product,
+    select_products,
+    update_product,
 )
 
 
