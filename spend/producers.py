@@ -12,7 +12,7 @@ slug TEXT UNIQUE,
 name TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_producers_slug 
+CREATE INDEX IF NOT EXISTS idx_producers_slug
 ON producers(slug)"""
 
 
