@@ -52,7 +52,10 @@ WHERE products.slug = ?"""
     return row
 
 
-def update_product(conn: sqlite3.Connection, slug: str, name: str, producer_id: int | None) -> None:
+def update_product(conn: sqlite3.Connection,
+                   slug: str,
+                   name: str,
+                   producer_id: int | None) -> None:
     sql = "UPDATE products SET name = ?, producer_id = ? WHERE slug = ?"
     values = (name, producer_id, slug.lower())
     conn.execute(sql, values)
@@ -76,8 +79,10 @@ def do_add_product(conn: sqlite3.Connection,
                    product_slug: str,
                    name: str,
                    producer_slug: str | None=None) -> None:
-    """Add product <slug> to the database and link to producer if producer_slug provided."""
-    print(f"Adding {product_slug} to database and setting name={name}, producer_slug={producer_slug}")
+    """
+    Add product <slug> to the database and link to producer if producer_slug provided.
+    """
+    print(f"Adding {product_slug}, name={name}, producer_slug={producer_slug}")
     producer_id = None
     if producer_slug:
         producer = select_producer(conn, producer_slug)
@@ -101,7 +106,10 @@ def do_show_product(conn: sqlite3.Connection, slug: str) -> None:
     """Show details of one product in the database."""
     product = select_product(conn, slug)
     if product is not None:
-        print(f'{product["product_slug"]}: {product["product_name"]}, producer: {product["producer_slug"]}')
+        product_slug = product["slug"]
+        product_name = product["name"]
+        producer_slug = product["producer_slug"]
+        print(f'{product_slug}: {product_name}, producer: {producer_slug}')
     else:
         logger.warning("Product %s not found.", slug)
 
