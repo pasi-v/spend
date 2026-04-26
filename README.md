@@ -173,6 +173,9 @@ Tests use in-memory SQLite (`":memory:"`) and live under `tests/`. Coverage
 is enforced at 60% via `pyproject.toml`. Type checking (`mypy`) and linting
 (`ruff`) are also configured in `pyproject.toml`.
 
+Before committing, run `./check.sh` to run ruff, mypy, and the test suite
+in that order. It exits on the first failure, so fix issues top-down.
+
 ## License
 
 GPL-3.0-only. See [`LICENSE`](LICENSE).
