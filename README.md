@@ -15,8 +15,9 @@ cd spend
 pip install -r dev-requirements.txt   # optional, for tests
 ```
 
-The database file `spend.db` is created in the current working directory the
-first time the program starts.
+By default the database file `spend.db` is created in the current working
+directory the first time the program starts. Pass `--db PATH` to use a
+different file.
 
 ## Running
 
@@ -24,10 +25,20 @@ first time the program starts.
 ./run.sh
 ```
 
-Use `--verbose` to enable debug output:
+`run.sh` forwards all arguments to the program. Available options:
+
+| Option            | Description                                       |
+|-------------------|---------------------------------------------------|
+| `--db`, `-d` PATH | Path to the SQLite database (default: `spend.db`) |
+| `--verbose`       | Enable debug output                               |
+| `--help`, `-h`    | Show usage and exit                               |
+
+Examples:
 
 ```sh
 ./run.sh --verbose
+./run.sh --db ~/data/spend.db
+./run.sh -d /tmp/test.db --verbose
 ```
 
 Inside the shell, type `help` or `?` to list commands, or `help <command>`
