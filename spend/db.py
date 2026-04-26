@@ -4,7 +4,7 @@ from . import products
 from . import vouchers
 from . import stores
 
-def get_connection(dbname: str="spend.db") -> sqlite3.Connection:
+def get_connection(dbname: str) -> sqlite3.Connection:
     conn = sqlite3.connect(dbname)
     conn.execute("PRAGMA foreign_keys = 1")
     conn.row_factory = sqlite3.Row
