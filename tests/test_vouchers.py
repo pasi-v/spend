@@ -28,7 +28,12 @@ def test_insert_and_select_all(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
-    insert_voucher_line(conn, product["product_id"], 299, date(2026, 1, 15), store["store_id"])
+    insert_voucher_line(
+        conn,
+        product["product_id"],
+        299,
+        date(2026, 1, 15),
+        store["store_id"])
     rows = select_vouchers(conn)
     assert len(rows) == 1
     assert rows[0]["amount_cents"] == 299
@@ -41,7 +46,12 @@ def test_select_voucher_by_id(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
-    insert_voucher_line(conn, product["product_id"], 500, date(2026, 2, 1), store["store_id"])
+    insert_voucher_line(
+        conn,
+        product["product_id"],
+        500,
+        date(2026, 2, 1),
+        store["store_id"])
     rows = select_vouchers(conn)
     vid = rows[0]["voucher_id"]
     row = select_voucher(conn, vid)
@@ -57,7 +67,12 @@ def test_delete_voucher(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
-    insert_voucher_line(conn, product["product_id"], 100, date(2026, 3, 1), store["store_id"])
+    insert_voucher_line(
+        conn,
+        product["product_id"],
+        100,
+        date(2026, 3, 1),
+        store["store_id"])
     rows = select_vouchers(conn)
     vid = rows[0]["voucher_id"]
     delete_voucher(conn, vid)
@@ -126,17 +141,28 @@ def test_format_voucher_row(conn):
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
-    insert_voucher_line(conn, product["product_id"], 299, date(2026, 1, 15), store["store_id"])
+    insert_voucher_line(
+        conn,
+        product["product_id"],
+        299,
+        date(2026, 1, 15),
+        store["store_id"])
     row = select_vouchers(conn)[0]
     assert format_voucher_row(row) == f"{row['voucher_id']} 2026-01-15 2.99 milk lidl"
 
 
 def test_format_voucher_row_uses_from_cents(conn):
-    # Pins that the amount is rendered via from_cents (500 → "5"), not the raw cents column.
+    # Pins that the amount is rendered via from_cents (500 → "5"),
+    # not the raw cents column.
     _seed(conn)
     product = select_product(conn, "milk")
     store = select_store(conn, "lidl")
-    insert_voucher_line(conn, product["product_id"], 500, date(2026, 2, 1), store["store_id"])
+    insert_voucher_line(
+        conn,
+        product["product_id"],
+        500,
+        date(2026, 2, 1),
+        store["store_id"])
     row = select_vouchers(conn)[0]
     assert " 5 " in format_voucher_row(row)
     assert " 500 " not in format_voucher_row(row)
