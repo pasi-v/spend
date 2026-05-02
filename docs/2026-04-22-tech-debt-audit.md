@@ -122,13 +122,11 @@ Ruff added to `dev-requirements.txt`, `ruff check .` run and findings cleared. A
 
 ---
 
-### P12 — No Continuous Integration
+### ~~P12 — No Continuous Integration~~ ✅ Done
 **Category**: Infrastructure debt  
 **Score**: (4 + 3) × (6 − 2) = **28**
 
-There is no CI pipeline (no `.github/workflows`, no other CI config). mypy strict mode, the 60% pytest coverage threshold, and (once P11 is fixed) ruff are all configured locally but nothing enforces them on push or pull request. Regressions in type safety, coverage, or lint can land silently if a contributor forgets to run the checks before pushing.
-
-*Fix*: Add a GitHub Actions workflow that installs `dev-requirements.txt` and runs `ruff check .`, `mypy spend tests`, and `pytest`. Configure branch protection on `master` to require the workflow green before merge. Best done after P11 so all three checks are wired in from the start.
+GitHub Actions workflow added at `.github/workflows/check.yml`. It runs on push and pull request to `master`: checks out the repo, sets up Python 3.10 (the project's `requires-python` floor) with pip caching keyed on `dev-requirements.txt`, installs dev deps, and runs `ruff check .`, `mypy spend tests`, and `pytest` as separate steps so failures are attributable. The three checks mirror `check.sh` exactly — same tools, same arguments, same order — so a green local `./check.sh` predicts a green CI run. README's Development section now points at the workflow. Branch protection on `master` to require the workflow green before merge is a one-time GitHub UI action left to the repo owner; not enforceable from code.
 
 ---
 
@@ -156,8 +154,8 @@ Items: ~~P5~~, ~~P6~~, ~~P7~~
 
 Fix error handling and remove debug prints. Add type hints to domain modules. Extract date format and currency constants. These are surgical changes, each independently safe once Phase 1 is done.
 
-### Phase 3 — Enforcement & CI (1 session)
-Items: P11, P12
+### ~~Phase 3 — Enforcement & CI (1 session)~~ ✅ Done
+Items: ~~P11~~, ~~P12~~
 
 Install and run ruff, fix what it flags, then add a GitHub Actions workflow that runs ruff, mypy, and pytest on every push and pull request. Order: P11 before P12 so the workflow can include ruff from the start. Done after Phase 2 (so all checks pass cleanly when CI first runs) and before Phase 4 (so the architectural refactors land under a safety net).
 

@@ -176,6 +176,9 @@ is enforced at 60% via `pyproject.toml`. Type checking (`mypy`) and linting
 Before committing, run `./check.sh` to run ruff, mypy, and the test suite
 in that order. It exits on the first failure, so fix issues top-down.
 
+The same three checks run in GitHub Actions on every push and pull request
+to `master` (see [`.github/workflows/check.yml`](.github/workflows/check.yml)).
+
 ## License
 
 GPL-3.0-only. See [`LICENSE`](LICENSE).
