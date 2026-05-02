@@ -2,7 +2,7 @@
 name = "spend"
 version = "0.1.0"
 description = "Personal spending data input program"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "GPL-3.0-only"
 
 [project.scripts]
@@ -10,7 +10,7 @@ spend = "spend.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=spend.db --cov=spend.producers --cov=spend.products --cov=spend.stores --cov=spend.vouchers --cov-fail-under=60"
+addopts = "--cov=spend.db --cov=spend.producers --cov=spend.products --cov=spend.stores --cov=spend.vouchers --cov=spend.slug --cov-fail-under=60"
 
 [tool.mypy]
 strict = true
@@ -20,7 +20,7 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
