@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from spend.producers import insert_producer, select_producer
 from spend.products import insert_product, select_product
+from spend.slug import to_slug
 from spend.stores import insert_store, select_store
 from spend.vouchers import (
     delete_voucher,
@@ -19,25 +20,22 @@ from spend.vouchers import (
 
 def _seed(conn: sqlite3.Connection) -> None:
     """Insert a producer, product, and store for voucher tests."""
-    insert_producer(conn, "farm", "The Farm")
-    producer = select_producer(conn, "farm")
+    insert_producer(conn, to_slug("farm"), "The Farm")
+    producer = select_producer(conn, to_slug("farm"))
     assert producer is not None
-    insert_product(conn, "milk", "Whole Milk", producer["producer_id"])
-    insert_store(conn, "lidl", "Lidl")
+    insert_product(conn, to_slug("milk"), "Whole Milk", producer["producer_id"])
+    insert_store(conn, to_slug("lidl"), "Lidl")
 
 
 def test_insert_and_select_all(conn):
     _seed(conn)
-    product = select_product(conn, "milk")
-    store = select_store(conn, "lidl")
+    product = select_product(conn, to_slug("milk"))
+    store = select_store(conn, to_slug("lidl"))
     assert product is not None
     assert store is not None
     insert_voucher_line(
-        conn,
-        product["product_id"],
-        299,
-        date(2026, 1, 15),
-        store["store_id"])
+        conn, product["product_id"], 299, date(2026, 1, 15), store["store_id"]
+    )
     rows = select_vouchers(conn)
     assert len(rows) == 1
     assert rows[0]["amount_cents"] == 299
@@ -48,16 +46,13 @@ def test_insert_and_select_all(conn):
 
 def test_select_voucher_by_id(conn):
     _seed(conn)
-    product = select_product(conn, "milk")
-    store = select_store(conn, "lidl")
+    product = select_product(conn, to_slug("milk"))
+    store = select_store(conn, to_slug("lidl"))
     assert product is not None
     assert store is not None
     insert_voucher_line(
-        conn,
-        product["product_id"],
-        500,
-        date(2026, 2, 1),
-        store["store_id"])
+        conn, product["product_id"], 500, date(2026, 2, 1), store["store_id"]
+    )
     rows = select_vouchers(conn)
     vid = rows[0]["voucher_id"]
     row = select_voucher(conn, vid)
@@ -72,16 +67,13 @@ def test_select_voucher_not_found(conn):
 
 def test_delete_voucher(conn):
     _seed(conn)
-    product = select_product(conn, "milk")
-    store = select_store(conn, "lidl")
+    product = select_product(conn, to_slug("milk"))
+    store = select_store(conn, to_slug("lidl"))
     assert product is not None
     assert store is not None
     insert_voucher_line(
-        conn,
-        product["product_id"],
-        100,
-        date(2026, 3, 1),
-        store["store_id"])
+        conn, product["product_id"], 100, date(2026, 3, 1), store["store_id"]
+    )
     rows = select_vouchers(conn)
     vid = rows[0]["voucher_id"]
     delete_voucher(conn, vid)
@@ -90,8 +82,8 @@ def test_delete_voucher(conn):
 
 def test_do_add_voucher(conn):
     _seed(conn)
-    lines = [("milk", Decimal("2.99"))]
-    do_add_voucher(conn, date(2026, 4, 1), "lidl", lines)
+    lines = [(to_slug("milk"), Decimal("2.99"))]
+    do_add_voucher(conn, date(2026, 4, 1), to_slug("lidl"), lines)
     rows = select_vouchers(conn)
     assert len(rows) == 1
     assert rows[0]["amount_cents"] == 299
@@ -100,9 +92,9 @@ def test_do_add_voucher(conn):
 
 def test_do_add_voucher_multiple_lines(conn):
     _seed(conn)
-    insert_product(conn, "bread", "Rye Bread")
-    lines = [("milk", Decimal("2.99")), ("bread", Decimal("1.50"))]
-    do_add_voucher(conn, date(2026, 4, 1), "lidl", lines)
+    insert_product(conn, to_slug("bread"), "Rye Bread")
+    lines = [(to_slug("milk"), Decimal("2.99")), (to_slug("bread"), Decimal("1.50"))]
+    do_add_voucher(conn, date(2026, 4, 1), to_slug("lidl"), lines)
     rows = select_vouchers(conn)
     assert len(rows) == 2
 
@@ -148,16 +140,13 @@ def test_from_cents_round_trip():
 
 def test_format_voucher_row(conn):
     _seed(conn)
-    product = select_product(conn, "milk")
-    store = select_store(conn, "lidl")
+    product = select_product(conn, to_slug("milk"))
+    store = select_store(conn, to_slug("lidl"))
     assert product is not None
     assert store is not None
     insert_voucher_line(
-        conn,
-        product["product_id"],
-        299,
-        date(2026, 1, 15),
-        store["store_id"])
+        conn, product["product_id"], 299, date(2026, 1, 15), store["store_id"]
+    )
     row = select_vouchers(conn)[0]
     assert format_voucher_row(row) == f"{row['voucher_id']} 2026-01-15 2.99 milk lidl"
 
@@ -166,16 +155,13 @@ def test_format_voucher_row_uses_from_cents(conn):
     # Pins that the amount is rendered via from_cents (500 → "5"),
     # not the raw cents column.
     _seed(conn)
-    product = select_product(conn, "milk")
-    store = select_store(conn, "lidl")
+    product = select_product(conn, to_slug("milk"))
+    store = select_store(conn, to_slug("lidl"))
     assert product is not None
     assert store is not None
     insert_voucher_line(
-        conn,
-        product["product_id"],
-        500,
-        date(2026, 2, 1),
-        store["store_id"])
+        conn, product["product_id"], 500, date(2026, 2, 1), store["store_id"]
+    )
     row = select_vouchers(conn)[0]
     assert " 5 " in format_voucher_row(row)
     assert " 500 " not in format_voucher_row(row)

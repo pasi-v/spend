@@ -4,6 +4,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
 from . import products, stores
+from .slug import Slug
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +50,9 @@ ON vouchers(store_id);
     return sql
 
 
-def insert_voucher_line(conn: sqlite3.Connection,
-                        product_id: int,
-                        amount_cents: int,
-                        d: date,
-                        store_id: int) -> None:
+def insert_voucher_line(
+    conn: sqlite3.Connection, product_id: int, amount_cents: int, d: date, store_id: int
+) -> None:
     sql = """
 INSERT INTO vouchers (date, amount_cents, product_id, store_id)
 VALUES (?, ?, ?, ?)"""
@@ -61,10 +60,12 @@ VALUES (?, ?, ?, ?)"""
     conn.execute(sql, values)
 
 
-def do_add_voucher(conn: sqlite3.Connection,
-                   d: date,
-                   store_slug: str,
-                   lines: list[tuple[str, Decimal]]) -> None:
+def do_add_voucher(
+    conn: sqlite3.Connection,
+    d: date,
+    store_slug: Slug,
+    lines: list[tuple[Slug, Decimal]],
+) -> None:
     store = stores.require_store(conn, store_slug)
     if store is None:
         raise ValueError(f"Unknown store: {store_slug}")
@@ -112,7 +113,7 @@ LEFT JOIN products as p ON v.product_id = p.product_id
 LEFT JOIN stores as s ON v.store_id = s.store_id
 WHERE voucher_id = ?"""
 
-    values = (voucher_id, )
+    values = (voucher_id,)
     res = conn.execute(sql, values)
     row: sqlite3.Row | None = res.fetchone()
     return row
@@ -126,9 +127,10 @@ def do_show_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
         return
     print(format_voucher_row(v))
 
+
 def delete_voucher(conn: sqlite3.Connection, voucher_id: int) -> None:
     sql = "DELETE FROM vouchers WHERE voucher_id = ?"
-    values = (voucher_id, )
+    values = (voucher_id,)
     conn.execute(sql, values)
 
 

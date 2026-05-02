@@ -2,6 +2,7 @@ import logging
 import sqlite3
 
 from .producers import select_producer
+from .slug import Slug, to_slug
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +23,14 @@ ON products(slug);
 """
 
 
-def insert_product(conn: sqlite3.Connection,
-                   product_slug: str,
-                   product_name: str,
-                   producer_id: int | None=None) -> None:
+def insert_product(
+    conn: sqlite3.Connection,
+    product_slug: Slug,
+    product_name: str,
+    producer_id: int | None = None,
+) -> None:
     sql = "INSERT INTO products (slug, name, producer_id) VALUES (?, ?, ?)"
-    values = (product_slug.lower(), product_name, producer_id)
+    values = (product_slug, product_name, producer_id)
     conn.execute(sql, values)
 
 
@@ -37,7 +40,7 @@ def select_products(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return res.fetchall()
 
 
-def select_product(conn: sqlite3.Connection, slug: str) -> sqlite3.Row | None:
+def select_product(conn: sqlite3.Connection, slug: Slug) -> sqlite3.Row | None:
     sql = """
 SELECT product_id
  , products.slug AS product_slug
@@ -46,28 +49,27 @@ SELECT product_id
  , producers.name AS producer_name
 FROM products LEFT JOIN producers ON products.producer_id = producers.producer_id
 WHERE products.slug = ?"""
-    values = (slug.lower(),)
+    values = (slug,)
     res = conn.execute(sql, values)
     row: sqlite3.Row | None = res.fetchone()
     return row
 
 
-def update_product(conn: sqlite3.Connection,
-                   slug: str,
-                   name: str,
-                   producer_id: int | None) -> None:
+def update_product(
+    conn: sqlite3.Connection, slug: Slug, name: str, producer_id: int | None
+) -> None:
     sql = "UPDATE products SET name = ?, producer_id = ? WHERE slug = ?"
-    values = (name, producer_id, slug.lower())
+    values = (name, producer_id, slug)
     conn.execute(sql, values)
 
 
-def delete_product(conn: sqlite3.Connection, slug: str) -> None:
+def delete_product(conn: sqlite3.Connection, slug: Slug) -> None:
     sql = "DELETE FROM products WHERE slug = ?"
-    values = (slug.lower(), )
+    values = (slug,)
     conn.execute(sql, values)
 
 
-def require_product(conn: sqlite3.Connection, slug: str) -> sqlite3.Row:
+def require_product(conn: sqlite3.Connection, slug: Slug) -> sqlite3.Row:
     """Return product or raise a ValueError if not found."""
     product = select_product(conn, slug)
     if product is None:
@@ -75,10 +77,12 @@ def require_product(conn: sqlite3.Connection, slug: str) -> sqlite3.Row:
     return product
 
 
-def do_add_product(conn: sqlite3.Connection,
-                   product_slug: str,
-                   name: str,
-                   producer_slug: str | None=None) -> None:
+def do_add_product(
+    conn: sqlite3.Connection,
+    product_slug: Slug,
+    name: str,
+    producer_slug: Slug | None = None,
+) -> None:
     """
     Add product <slug> to the database and link to producer if producer_slug provided.
     """
@@ -99,22 +103,22 @@ def do_list_products(conn: sqlite3.Connection) -> None:
     """List all products in the database."""
     products = select_products(conn)
     for product in products:
-        print(f'{product["slug"]}: {product["name"]}')
+        print(f"{product['slug']}: {product['name']}")
 
 
-def do_show_product(conn: sqlite3.Connection, slug: str) -> None:
+def do_show_product(conn: sqlite3.Connection, slug: Slug) -> None:
     """Show details of one product in the database."""
     product = select_product(conn, slug)
     if product is not None:
         product_slug = product["slug"]
         product_name = product["name"]
         producer_slug = product["producer_slug"]
-        print(f'{product_slug}: {product_name}, producer: {producer_slug}')
+        print(f"{product_slug}: {product_name}, producer: {producer_slug}")
     else:
         logger.warning("Product %s not found.", slug)
 
 
-def do_update_product(conn: sqlite3.Connection, slug: str) -> None:
+def do_update_product(conn: sqlite3.Connection, slug: Slug) -> None:
     """Input name of product with slug and update it in the database."""
     product = select_product(conn, slug)
     if product is None:
@@ -123,7 +127,9 @@ def do_update_product(conn: sqlite3.Connection, slug: str) -> None:
 
     producer_id = None
     name = input(f"Enter new name for {slug}: ")
-    producer_slug = input("Enter new producer slug (empty to set null): ").strip()
+    producer_slug = to_slug(
+        input("Enter new producer slug (empty to set null): ").strip()
+    )
     if producer_slug != "":
         producer = select_producer(conn, producer_slug)
         if producer is None:
@@ -134,6 +140,6 @@ def do_update_product(conn: sqlite3.Connection, slug: str) -> None:
     update_product(conn, slug, name, producer_id)
 
 
-def do_delete_product(conn: sqlite3.Connection, slug: str) -> None:
+def do_delete_product(conn: sqlite3.Connection, slug: Slug) -> None:
     """Delete product <slug> from the database."""
     delete_product(conn, slug)

@@ -8,13 +8,14 @@ from decimal import Decimal, InvalidOperation
 from typing import TypedDict
 
 from . import producers, products, stores, vouchers
+from .slug import Slug, to_slug
 
 DATE_FORMAT = "%Y-%m-%d"
 
 logger = logging.getLogger(__name__)
 
 
-def voucher_add(conn: sqlite3.Connection, date_str: str, store_slug: str) -> None:
+def voucher_add(conn: sqlite3.Connection, date_str: str, store_slug: Slug) -> None:
     # 1. Parse date
     try:
         d = datetime.strptime(date_str, DATE_FORMAT).date()
@@ -149,7 +150,7 @@ commands: dict[str, dict[str, CommandSpec]] = {
     },
     "voucher": {
         "add": {
-            "handler": voucher_add,    # Note that this is at the UI layer
+            "handler": voucher_add,  # Note that this is at the UI layer
             "args": ["date", "store_slug"],
             "transaction": True,
         },
@@ -159,12 +160,12 @@ commands: dict[str, dict[str, CommandSpec]] = {
             "transaction": False,
         },
         "show": {
-            "handler": voucher_show,   # Note that this is at the UI layer
+            "handler": voucher_show,  # Note that this is at the UI layer
             "args": ["voucher_id"],
             "transaction": False,
         },
         "delete": {
-            "handler": voucher_delete, # Note that this is at the UI layer
+            "handler": voucher_delete,  # Note that this is at the UI layer
             "args": ["voucher_id"],
             "transaction": True,
         },
@@ -176,7 +177,8 @@ def run_tx(conn: sqlite3.Connection, fn: Callable[..., None], *args: str) -> Non
     with conn:
         fn(conn, *args)
 
-def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[str, Decimal]]:
+
+def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[Slug, Decimal]]:
     lines = []
     print("Adding voucher lines: <product_slug> <amount in €.cc> (empty line to end)")
     while True:
@@ -187,7 +189,7 @@ def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[str, Decimal]]
         if len(parts) < 2:
             print("usage: <product_slug> <amount in €.cc>")
             continue
-        product_slug = parts[0]
+        product_slug = to_slug(parts[0])
         try:
             products.require_product(conn, product_slug)
         except ValueError as e:
@@ -201,6 +203,15 @@ def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[str, Decimal]]
             continue
         lines.append((product_slug, amount))
     return lines
+
+
+def _convert_arg(spec: str, value: str) -> str:
+    """Args whose spec name ends in '_slug' are normalized via
+    to_slug; others pass through unchanged."""
+    name = spec.rstrip("?")
+    if name.endswith("_slug"):
+        return to_slug(value)
+    return value
 
 
 class SpendShell(cmd.Cmd):
@@ -244,45 +255,49 @@ class SpendShell(cmd.Cmd):
             print(f"usage: {entity_name} {subcommand} {usage}")
             return
 
+        converted = [_convert_arg(arg_spec[i], values[i]) for i in range(len(values))]
+
         try:
             if wants_tx:
-                run_tx(self.conn, handler, *values)
+                run_tx(self.conn, handler, *converted)
             else:
-                handler(self.conn, *values)
+                handler(self.conn, *converted)
 
         except sqlite3.IntegrityError:
-            if subcommand == "add" and values:
-                logger.warning("%s %s already exists, skipping add.",
-                               entity_name.capitalize(),
-                               values[0])
+            if subcommand == "add" and converted:
+                logger.warning(
+                    "%s %s already exists, skipping add.",
+                    entity_name.capitalize(),
+                    converted[0],
+                )
             else:
                 logger.error("Database integrity error: %s", entity_name, exc_info=True)
         except sqlite3.OperationalError:
-            logger.error("Database error while handling %s %s.",
-                         entity_name,
-                         subcommand,
-                         exc_info=True)
+            logger.error(
+                "Database error while handling %s %s.",
+                entity_name,
+                subcommand,
+                exc_info=True,
+            )
         except sqlite3.ProgrammingError:
-            logger.error("Internal error while handling %s %s.",
-                         entity_name,
-                         subcommand,
-                         exc_info=True)
-
+            logger.error(
+                "Internal error while handling %s %s.",
+                entity_name,
+                subcommand,
+                exc_info=True,
+            )
 
     def do_producer(self, arg: str) -> None:
         """Add, list, show, delete or update producer."""
         self.dispatch("producer", arg)
 
-
     def do_product(self, arg: str) -> None:
         """Add, list, show, delete or update product."""
         self.dispatch("product", arg)
 
-
     def do_store(self, arg: str) -> None:
         """Add, list, show, delete or update store."""
         self.dispatch("store", arg)
-
 
     def do_voucher(self, arg: str) -> None:
         """Add, list, show, delete or update voucher."""
