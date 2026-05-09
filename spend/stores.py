@@ -49,7 +49,6 @@ def delete_store(conn: sqlite3.Connection, slug: Slug) -> None:
 
 def do_add_store(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
     """Add store to the database."""
-    print(f"Adding {slug} to database and setting name={name}")
     insert_store(conn, slug, name)
 
 
@@ -69,11 +68,10 @@ def do_show_store(conn: sqlite3.Connection, slug: Slug) -> None:
         logger.warning("Store %s not found.", slug)
 
 
-def do_update_store(conn: sqlite3.Connection, slug: Slug) -> None:
+def do_update_store(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
     """Input name of store with slug and update it in the database."""
     store = select_store(conn, slug)
     if store is not None:
-        name = input(f"Enter new name for {slug}: ")
         update_store(conn, slug, name)
     else:
         logger.warning("Store %s not found.", slug)

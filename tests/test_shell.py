@@ -26,6 +26,7 @@ import sqlite3
 import pytest
 
 from spend.producers import select_producer
+from spend.products import select_product
 from spend.shell import SpendShell
 from spend.slug import to_slug
 
@@ -63,13 +64,26 @@ def test_list_captures_stdout(shell, capsys):
     assert "acme: Acme Corp" in out
 
 
-def test_update_mocks_input(shell, conn, monkeypatch):
-    """Interactive `do_update_*` flows call input(); monkeypatch builtins.input."""
+def test_update_producer_changes_name(shell, conn):
     shell.onecmd("producer add acme 'Acme Corp'")
-    monkeypatch.setattr("builtins.input", lambda *_: "Acme Inc")
 
-    shell.onecmd("producer update acme")
+    shell.onecmd("producer update acme 'Acme Inc'")
 
     row = select_producer(conn, to_slug("acme"))
     assert row is not None
     assert row["name"] == "Acme Inc"
+
+
+def test_update_product_prompts_for_producer(shell, conn, monkeypatch):
+    """`product update` takes the new name as an arg and prompts for producer slug."""
+    shell.onecmd("producer add acme 'Acme Corp'")
+    shell.onecmd("producer add globex 'Globex'")
+    shell.onecmd("product add bread 'Bread' acme")
+    monkeypatch.setattr("builtins.input", lambda *_: "globex")
+
+    shell.onecmd("product update bread 'Sourdough'")
+
+    row = select_product(conn, to_slug("bread"))
+    assert row is not None
+    assert row["product_name"] == "Sourdough"
+    assert row["producer_slug"] == "globex"

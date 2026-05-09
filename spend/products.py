@@ -2,7 +2,7 @@ import logging
 import sqlite3
 
 from .producers import select_producer
-from .slug import Slug, to_slug
+from .slug import Slug
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,6 @@ def do_add_product(
     """
     Add product <slug> to the database and link to producer if producer_slug provided.
     """
-    print(f"Adding {product_slug}, name={name}, producer_slug={producer_slug}")
     producer_id = None
     if producer_slug:
         producer = select_producer(conn, producer_slug)
@@ -118,26 +117,25 @@ def do_show_product(conn: sqlite3.Connection, slug: Slug) -> None:
         logger.warning("Product %s not found.", slug)
 
 
-def do_update_product(conn: sqlite3.Connection, slug: Slug) -> None:
-    """Input name of product with slug and update it in the database."""
-    product = select_product(conn, slug)
+def do_update_product(conn: sqlite3.Connection,
+                      product_slug: Slug,
+                      product_name: str,
+                      producer_slug: Slug | None) -> None:
+    """Update the product in the database."""
+    product = select_product(conn, product_slug)
     if product is None:
-        logger.warning("Product %s not found.", slug)
+        logger.warning("Product %s not found.", product_slug)
         return
 
     producer_id = None
-    name = input(f"Enter new name for {slug}: ")
-    producer_slug = to_slug(
-        input("Enter new producer slug (empty to set null): ").strip()
-    )
-    if producer_slug != "":
+    if producer_slug is not None:
         producer = select_producer(conn, producer_slug)
         if producer is None:
             logger.warning("Producer %s not found.", producer_slug)
             return
         producer_id = producer["producer_id"]
 
-    update_product(conn, slug, name, producer_id)
+    update_product(conn, product_slug, product_name, producer_id)
 
 
 def do_delete_product(conn: sqlite3.Connection, slug: Slug) -> None:

@@ -60,6 +60,14 @@ def voucher_delete(conn: sqlite3.Connection, id_str: str) -> None:
     return
 
 
+def product_update(conn: sqlite3.Connection,
+                   product_slug: Slug,
+                   product_name: str) -> None:
+    raw = input("Enter new producer slug (empty to set null): ").strip()
+    producer_slug: Slug | None = to_slug(raw) if raw else None
+    products.do_update_product(conn, product_slug, product_name, producer_slug)
+
+
 class CommandSpec(TypedDict):
     handler: Callable[..., None]
     args: list[str]
@@ -85,7 +93,7 @@ commands: dict[str, dict[str, CommandSpec]] = {
         },
         "update": {
             "handler": producers.do_update_producer,
-            "args": ["producer_slug"],
+            "args": ["producer_slug", "producer_name"],
             "transaction": True,
         },
         "delete": {
@@ -111,8 +119,8 @@ commands: dict[str, dict[str, CommandSpec]] = {
             "transaction": False,
         },
         "update": {
-            "handler": products.do_update_product,
-            "args": ["product_slug"],
+            "handler": product_update,
+            "args": ["product_slug", "product_name"],
             "transaction": True,
         },
         "delete": {
@@ -139,7 +147,7 @@ commands: dict[str, dict[str, CommandSpec]] = {
         },
         "update": {
             "handler": stores.do_update_store,
-            "args": ["store_slug"],
+            "args": ["store_slug", "store_name"],
             "transaction": True,
         },
         "delete": {

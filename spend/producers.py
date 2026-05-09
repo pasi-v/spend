@@ -52,7 +52,6 @@ def delete_producer(conn: sqlite3.Connection, slug: Slug) -> None:
 
 def do_add_producer(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
     """Add producer to the database."""
-    print(f"Adding {slug} to database and setting name={name}")
     insert_producer(conn, slug, name)
 
 
@@ -71,11 +70,10 @@ def do_show_producer(conn: sqlite3.Connection, slug: Slug) -> None:
         logger.warning("Producer %s not found.", slug)
 
 
-def do_update_producer(conn: sqlite3.Connection, slug: Slug) -> None:
-    """Input name of producer with slug and update it in the database."""
+def do_update_producer(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
+    """Update producer with slug it in the database."""
     producer = select_producer(conn, slug)
     if producer is not None:
-        name = input(f"Enter new name for {slug}: ")
         update_producer(conn, slug, name)
     else:
         logger.warning("Producer %s not found.", slug)
