@@ -29,20 +29,32 @@ There are no test files, no test framework, and no coverage reporting anywhere i
 **Category**: Code debt  
 **Score**: (4 + 3) × (6 − 3) = **21**
 
-The same structural patterns appear four times — once per entity (producer, product, store, voucher):
+The same structural patterns appear across the slug-keyed entity modules (producers, products, stores). `producers.py` and `stores.py` are near-identical clones; `products.py` is a divergent variant with a FK to producer. `vouchers.py` is keyed by `voucher_id` rather than slug and has its own row format, so it sits outside this duplication.
+
+The repeated shapes per entity:
 
 - `schema()` — table DDL template
-- `select_*()` — query boilerplate
+- `select_*()` / `select_*s()` — query boilerplate
 - `do_list_*()` — fetch + print loop
 - `do_show_*()` — fetch-by-slug + print
-- `do_delete_*()` — confirm + delete
-- Slug normalization: `.lower()` called explicitly at every query site (16+ times across the four modules)
+- `do_delete_*()` — delete-by-slug
 
-*Fix*: Extract a generic `BaseRepository` class or a set of helper functions (`list_entities`, `show_entity`, etc.). Normalize slugs in a single place (a `Slug` type or property). This is a medium-effort refactor but has a high payoff for maintainability.
+Slug normalization is **no longer duplicated**: `to_slug` (`spend/slug.py:6`) is the sole sanctioned constructor, and the `_convert_arg` dispatcher (`spend/shell.py:208–214`) coerces every `*_slug` argument at the UI boundary. Only two `.lower()` calls remain in the codebase (`slug.py:8` inside `to_slug` itself, and `shell.py:236` for subcommand matching), both legitimate.
+
+*Fix*: Add a small `spend/crud.py` module with generic helpers parameterised on table and columns — not a `BaseRepository` class (too much ceremony for ~700 LOC). Target signatures:
+
+- `list_rows(conn, table, columns) -> list[sqlite3.Row]`
+- `select_by_slug(conn, table, columns, slug) -> sqlite3.Row | None`
+- `delete_by_slug(conn, table, slug) -> None`
+- a `format_row(row, template)` printer reused by `do_list_*` / `do_show_*`
+
+`producers.py` and `stores.py` collapse to ~20 lines each (schema string plus thin `do_*` wrappers that call the helpers). `products.py` keeps its custom `select_product` (the producer JOIN) but reuses `delete_by_slug` and the list/show printers. `vouchers.py` is left alone — forcing it into the abstraction would be bad-kind DRY.
+
+**Sequencing**: do P3 before (or together with) P2. The `do_update_*` functions still hold `input()` calls (`producers.py:78`, `stores.py:76`, `products.py:129–131`); generalising `update` while it owns I/O would bake the I/O into the helper. Move `input()` to `shell.py` first, then the update path becomes "accept a `name`, write it" and slots into the same helper shape.
 
 ---
 
-### P3 — Mixed I/O and Domain Logic
+### ~~P3 — Mixed I/O and Domain Logic~~ ✅ Done
 **Category**: Architecture debt  
 **Score**: (4 + 3) × (6 − 3) = **21**
 
@@ -160,7 +172,7 @@ Items: ~~P11~~, ~~P12~~
 Install and run ruff, fix what it flags, then add a GitHub Actions workflow that runs ruff, mypy, and pytest on every push and pull request. Order: P11 before P12 so the workflow can include ruff from the start. Done after Phase 2 (so all checks pass cleanly when CI first runs) and before Phase 4 (so the architectural refactors land under a safety net).
 
 ### Phase 4 — Architectural Improvements (3–4 sessions)
-Items: P2, P3, P8
+Items: P2, ~~P3~~, P8
 
 Extract CRUD patterns into shared helpers. Move `input()` calls out of domain modules. Add a migration runner before the next schema change. These are the most impactful changes for long-term maintainability — and the riskiest, which is why CI from Phase 3 should already be guarding them.
 
