@@ -22,12 +22,13 @@ Notes for extending this file:
 """
 
 import sqlite3
+from decimal import Decimal
 
 import pytest
 
 from spend.producers import select_producer
 from spend.products import select_product
-from spend.shell import SpendShell, slug_completion
+from spend.shell import SpendShell, collect_voucher_lines, slug_completion
 from spend.slug import to_slug
 
 
@@ -223,7 +224,7 @@ def test_slug_completion_narrows_and_restores_delimiters(shell):
     readline.set_completer_delims(" \t\n-")  # a delim set that includes "-"
     before = readline.get_completer_delims()
 
-    with slug_completion(["valio-oy"]):
+    with slug_completion(lambda: ["valio-oy"]):
         assert "-" not in readline.get_completer_delims()
     assert readline.get_completer_delims() == before
 
@@ -247,7 +248,7 @@ def test_slug_completion_context_installs_and_restores(shell):
     readline = pytest.importorskip("readline")
 
     before = readline.get_completer()
-    with slug_completion(["acme", "globex", "gloria"]):
+    with slug_completion(lambda: ["acme", "globex", "gloria"]):
         completer = readline.get_completer()
         assert completer is not None
         assert completer("ac", 0) == "acme"
@@ -256,6 +257,18 @@ def test_slug_completion_context_installs_and_restores(shell):
         assert completer("gl", 1) == "gloria"
         assert completer("gl", 2) is None
     assert readline.get_completer() is before
+
+
+def test_slug_completion_reads_provider_live(shell):
+    """The provider is called per keypress, so mid-prompt additions show up."""
+    readline = pytest.importorskip("readline")
+    slugs = ["acme"]
+
+    with slug_completion(lambda: slugs):
+        completer = readline.get_completer()
+        assert completer("gl", 0) is None
+        slugs.append("globex")  # e.g. a product created mid-loop
+        assert completer("gl", 0) == "globex"
 
 
 def test_voucher_lines_prompt_completes_products(shell, monkeypatch):
@@ -303,3 +316,108 @@ def test_eof_signals_exit(shell, capsys):
 
     assert stop is True
     assert capsys.readouterr().out == "\n"
+
+
+# ---------------------------------------------------------------------------
+# Inline product creation during voucher entry
+#
+# collect_voucher_lines drives input() for both the line loop and the
+# create-product prompts, so tests feed a scripted sequence of responses via
+# an iterator. It is called here directly (not through `voucher add`) to
+# assert on its return value; on the shared in-memory connection, products
+# inserted mid-loop are visible to later queries without an explicit commit.
+# ---------------------------------------------------------------------------
+
+
+def _scripted_input(
+    monkeypatch: pytest.MonkeyPatch, responses: list[str]
+) -> None:
+    it = iter(responses)
+    monkeypatch.setattr("builtins.input", lambda *_: next(it))
+
+
+def test_voucher_line_creates_unknown_product(shell, conn, monkeypatch):
+    shell.onecmd("producer add paulig 'Paulig'")
+    # line -> confirm -> name -> producer -> end
+    _scripted_input(monkeypatch, ["kahvi 4.99", "y", "Coffee 500g", "paulig", ""])
+
+    lines = collect_voucher_lines(conn)
+
+    assert lines == [(to_slug("kahvi"), Decimal("4.99"))]
+    row = select_product(conn, to_slug("kahvi"))
+    assert row is not None
+    assert row["product_name"] == "Coffee 500g"
+    assert row["producer_slug"] == "paulig"
+
+
+def test_voucher_line_creates_product_without_producer(shell, conn, monkeypatch):
+    _scripted_input(monkeypatch, ["kahvi 4.99", "yes", "Coffee", "", ""])
+
+    lines = collect_voucher_lines(conn)
+
+    assert lines == [(to_slug("kahvi"), Decimal("4.99"))]
+    row = select_product(conn, to_slug("kahvi"))
+    assert row is not None
+    assert row["producer_slug"] is None
+
+
+def test_voucher_line_decline_skips_unknown_product(shell, conn, monkeypatch):
+    # default is No: an empty answer declines and skips the line.
+    _scripted_input(monkeypatch, ["kahvi 4.99", "", ""])
+
+    lines = collect_voucher_lines(conn)
+
+    assert lines == []
+    assert select_product(conn, to_slug("kahvi")) is None
+
+
+def test_voucher_line_empty_name_aborts_creation(shell, conn, monkeypatch):
+    _scripted_input(monkeypatch, ["kahvi 4.99", "y", "  ", ""])
+
+    lines = collect_voucher_lines(conn)
+
+    assert lines == []
+    assert select_product(conn, to_slug("kahvi")) is None
+
+
+def test_voucher_line_unknown_producer_aborts_creation(shell, conn, monkeypatch):
+    # do_add_product refuses an unknown producer; the line is then skipped.
+    _scripted_input(monkeypatch, ["kahvi 4.99", "y", "Coffee", "nosuch", ""])
+
+    lines = collect_voucher_lines(conn)
+
+    assert lines == []
+    assert select_product(conn, to_slug("kahvi")) is None
+
+
+def test_voucher_line_bad_amount_never_prompts_to_create(shell, conn, monkeypatch):
+    """A malformed amount is rejected before any create prompt fires."""
+    # Only two reads happen: the bad line, then the terminating empty line.
+    # If a create prompt were reached, the iterator would raise StopIteration.
+    _scripted_input(monkeypatch, ["kahvi notanumber", ""])
+
+    lines = collect_voucher_lines(conn)
+
+    assert lines == []
+    assert select_product(conn, to_slug("kahvi")) is None
+
+
+def test_voucher_line_completes_product_created_mid_loop(shell, conn, monkeypatch):
+    """A product added mid-loop is tab-completable on a subsequent line."""
+    readline = pytest.importorskip("readline")
+    captured = {}
+    responses = iter(["kahvi 4.99", "y", "Coffee", "", "__probe__"])
+
+    def fake_input(*_):
+        value = next(responses)
+        if value == "__probe__":
+            completer = readline.get_completer()
+            captured["match"] = completer("kah", 0)
+            return ""  # end the loop
+        return value
+
+    monkeypatch.setattr("builtins.input", fake_input)
+
+    collect_voucher_lines(conn)
+
+    assert captured["match"] == "kahvi"

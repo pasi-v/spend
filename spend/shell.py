@@ -34,12 +34,14 @@ COMPLETION_SOURCES: dict[str, CompletionSource] = {
 
 
 @contextmanager
-def slug_completion(slugs: list[str]) -> Iterator[None]:
-    """Temporarily install a readline completer over a fixed slug list.
+def slug_completion(get_slugs: Callable[[], list[str]]) -> Iterator[None]:
+    """Temporarily install a readline completer over a slug provider.
 
     Used to bring tab-completion to the bare `input()` prompts (voucher lines,
     the producer-slug prompt) that bypass cmd.Cmd's own completion machinery.
-    The previous completer is restored on exit; a no-op when readline is
+    `get_slugs` is called on every keypress, so slugs created mid-prompt (a
+    product added while entering voucher lines) are offered immediately. The
+    previous completer is restored on exit; a no-op when readline is
     unavailable.
     """
     if readline is None:
@@ -47,7 +49,7 @@ def slug_completion(slugs: list[str]) -> Iterator[None]:
         return
 
     def complete(text: str, state: int) -> str | None:
-        matches = [s for s in slugs if s.startswith(text)]
+        matches = [s for s in get_slugs() if s.startswith(text)]
         return matches[state] if state < len(matches) else None
 
     previous = readline.get_completer()
@@ -111,11 +113,47 @@ def voucher_delete(conn: sqlite3.Connection, id_str: str) -> None:
 def product_update(conn: sqlite3.Connection,
                    product_slug: Slug,
                    product_name: str) -> None:
-    producer_slugs = [row["slug"] for row in producers.select_producers(conn)]
+    def producer_slugs() -> list[str]:
+        return [row["slug"] for row in producers.select_producers(conn)]
+
     with slug_completion(producer_slugs):
         raw = input("Enter new producer slug (empty to set null): ").strip()
     producer_slug: Slug | None = to_slug(raw) if raw else None
     products.do_update_product(conn, product_slug, product_name, producer_slug)
+
+
+def prompt_create_product(conn: sqlite3.Connection, product_slug: Slug) -> bool:
+    """Offer to create an unknown product inline during voucher entry.
+
+    Returns True if the product exists afterwards (created, or already there),
+    False if the user declined or creation failed (empty name, unknown
+    producer). Runs in the caller's transaction, so a product created here
+    commits atomically with the voucher.
+    """
+    answer = input(f"Unknown product '{product_slug}'. Add it now? [y/N] ").strip()
+    if answer.lower() not in ("y", "yes"):
+        return False
+
+    name = input("  Product name: ").strip()
+    if not name:
+        logger.error("Product name cannot be empty; not adding %s.", product_slug)
+        return False
+
+    def producer_slugs() -> list[str]:
+        return [row["slug"] for row in producers.select_producers(conn)]
+
+    with slug_completion(producer_slugs):
+        raw = input("  Producer slug (empty for none): ").strip()
+    producer_slug: Slug | None = to_slug(raw) if raw else None
+
+    products.do_add_product(conn, product_slug, name, producer_slug)
+    if products.select_product(conn, product_slug) is None:
+        # do_add_product logs a warning and skips the insert on an unknown
+        # producer; treat that as "not created" so the line is skipped.
+        return False
+
+    print(f"{product_slug} added.")
+    return True
 
 
 class CommandSpec(TypedDict):
@@ -239,7 +277,10 @@ def run_tx(conn: sqlite3.Connection, fn: Callable[..., None], *args: str) -> Non
 def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[Slug, Decimal]]:
     lines = []
     print("Adding voucher lines: <product_slug> <amount in €.cc> (empty line to end)")
-    product_slugs = [row["slug"] for row in products.select_products(conn)]
+
+    def product_slugs() -> list[str]:
+        return [row["slug"] for row in products.select_products(conn)]
+
     with slug_completion(product_slugs):
         while True:
             line = input()
@@ -250,17 +291,15 @@ def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[Slug, Decimal]
                 print("usage: <product_slug> <amount in €.cc>")
                 continue
             product_slug = to_slug(parts[0])
-            try:
-                products.require_product(conn, product_slug)
-            except ValueError as e:
-                logger.error("%s", e)
-                continue
             amount_str = parts[1]
             try:
                 amount = Decimal(amount_str)
             except InvalidOperation:
                 logger.error("Invalid amount: %s.  Use '123.45'.", amount_str)
                 continue
+            if products.select_product(conn, product_slug) is None:
+                if not prompt_create_product(conn, product_slug):
+                    continue
             lines.append((product_slug, amount))
     return lines
 

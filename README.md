@@ -147,6 +147,22 @@ leipa 3.49
 (spend) voucher list
 ```
 
+Product slugs tab-complete at the line prompt. If you enter a product that
+does not exist yet, you are offered the chance to create it inline without
+leaving voucher entry:
+
+```
+kahvi 4.99
+Unknown product 'kahvi'. Add it now? [y/N] y
+  Product name: Coffee 500g
+  Producer slug (empty for none): paulig
+kahvi added.
+```
+
+The `4.99` line is then recorded automatically. Decline (the default) and the
+line is skipped. A product created this way commits together with the voucher,
+so cancelling the entry (Ctrl-C) also discards the new product.
+
 Vouchers have no slug — use the integer `voucher_id` (shown by `voucher
 list`) to `show` or `delete` them.
 
