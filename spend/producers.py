@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 
-from .slug import Slug
+from .slug import Slug, slug_like_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,14 @@ def insert_producer(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
     conn.execute(sql, values)
 
 
-def select_producers(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    sql = "SELECT slug, name FROM producers"
-    res = conn.execute(sql)
+def select_producers(
+    conn: sqlite3.Connection, prefix: str | None = None
+) -> list[sqlite3.Row]:
+    if prefix:
+        sql = "SELECT slug, name FROM producers WHERE slug LIKE ? ESCAPE '\\'"
+        res = conn.execute(sql, (slug_like_prefix(prefix),))
+    else:
+        res = conn.execute("SELECT slug, name FROM producers")
     return res.fetchall()
 
 
@@ -55,9 +60,9 @@ def do_add_producer(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
     insert_producer(conn, slug, name)
 
 
-def do_list_producers(conn: sqlite3.Connection) -> None:
-    """List all producers in the database."""
-    for producer in select_producers(conn):
+def do_list_producers(conn: sqlite3.Connection, prefix: str | None = None) -> None:
+    """List producers, optionally only those whose slug starts with `prefix`."""
+    for producer in select_producers(conn, prefix):
         print(f"{producer['slug']}: {producer['name']}")
 
 

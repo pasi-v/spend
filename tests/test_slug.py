@@ -1,6 +1,6 @@
 from typing import assert_type
 
-from spend.slug import Slug, to_slug
+from spend.slug import Slug, slug_like_prefix, to_slug
 
 
 def test_lowercase():
@@ -27,3 +27,18 @@ def test_type():
     slug = "milk"
     # verified by mypy; no-op at runtime
     assert_type(to_slug(slug), Slug)
+
+
+def test_like_prefix_appends_wildcard():
+    assert slug_like_prefix("va") == "va%"
+
+
+def test_like_prefix_lowercases():
+    assert slug_like_prefix("VA") == "va%"
+
+
+def test_like_prefix_escapes_wildcards():
+    # LIKE metacharacters in the prefix must be matched literally.
+    assert slug_like_prefix("50%") == "50\\%%"
+    assert slug_like_prefix("a_b") == "a\\_b%"
+    assert slug_like_prefix("a\\b") == "a\\\\b%"

@@ -16,6 +16,42 @@ def test_insert_and_select_all(conn):
     assert rows[0]["name"] == "Acme Corp"
 
 
+def test_select_producers_filters_by_prefix(conn):
+    insert_producer(conn, to_slug("valio"), "Valio")
+    insert_producer(conn, to_slug("vaasan"), "Vaasan")
+    insert_producer(conn, to_slug("atria"), "Atria")
+
+    rows = select_producers(conn, "va")
+
+    assert {r["slug"] for r in rows} == {"valio", "vaasan"}
+
+
+def test_select_producers_prefix_is_case_insensitive(conn):
+    insert_producer(conn, to_slug("valio"), "Valio")
+
+    rows = select_producers(conn, "VA")
+
+    assert {r["slug"] for r in rows} == {"valio"}
+
+
+def test_select_producers_prefix_treats_wildcards_literally(conn):
+    """A "%" in the prefix must match a literal "%", not act as a wildcard."""
+    insert_producer(conn, to_slug("50%-off"), "Half off")
+    insert_producer(conn, to_slug("acme"), "Acme")
+
+    rows = select_producers(conn, "50%")
+
+    assert {r["slug"] for r in rows} == {"50%-off"}
+
+
+def test_select_producers_empty_prefix_lists_all(conn):
+    """A falsy prefix behaves like no prefix (lists everything)."""
+    insert_producer(conn, to_slug("acme"), "Acme")
+    insert_producer(conn, to_slug("valio"), "Valio")
+
+    assert len(select_producers(conn, "")) == 2
+
+
 def test_insert_normalizes_slug(conn):
     insert_producer(conn, to_slug("ACME"), "Acme Corp")
     row = select_producer(conn, to_slug("acme"))

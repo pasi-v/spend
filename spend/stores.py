@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 
-from .slug import Slug
+from .slug import Slug, slug_like_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +21,14 @@ def insert_store(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
     conn.execute(sql, values)
 
 
-def select_stores(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    sql = "SELECT slug, name FROM stores"
-    res = conn.execute(sql)
+def select_stores(
+    conn: sqlite3.Connection, prefix: str | None = None
+) -> list[sqlite3.Row]:
+    if prefix:
+        sql = "SELECT slug, name FROM stores WHERE slug LIKE ? ESCAPE '\\'"
+        res = conn.execute(sql, (slug_like_prefix(prefix),))
+    else:
+        res = conn.execute("SELECT slug, name FROM stores")
     return res.fetchall()
 
 
@@ -52,9 +57,9 @@ def do_add_store(conn: sqlite3.Connection, slug: Slug, name: str) -> None:
     insert_store(conn, slug, name)
 
 
-def do_list_stores(conn: sqlite3.Connection) -> None:
-    """List all stores in the database."""
-    stores = select_stores(conn)
+def do_list_stores(conn: sqlite3.Connection, prefix: str | None = None) -> None:
+    """List stores, optionally only those whose slug starts with `prefix`."""
+    stores = select_stores(conn, prefix)
     for store in stores:
         print(f"{store['slug']}: {store['name']}")
 

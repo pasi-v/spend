@@ -67,11 +67,15 @@ libedit build shipped with macOS system Python.
 All entity commands follow the same shape: `<entity> <action> [args...]`.
 Slugs are case-insensitive (they are lowercased before being stored).
 
+The `list` action for producers, products, and stores takes an optional
+prefix: `producer list va` lists only producers whose slug starts with `va`
+(also case-insensitive).
+
 ### Producers
 
 ```
 producer add    <slug> <name>      Add a producer
-producer list                      List all producers
+producer list   [<prefix>]         List producers (optionally slug-prefixed)
 producer show   <slug>             Show one producer
 producer update <slug>             Prompt for new name and update
 producer delete <slug>             Delete a producer
@@ -90,7 +94,7 @@ Products may optionally be linked to a producer.
 
 ```
 product add    <slug> <name> [<producer_slug>]
-product list
+product list   [<prefix>]
 product show   <slug>
 product update <slug>              Prompt for new name and producer
 product delete <slug>
@@ -107,7 +111,7 @@ Example:
 
 ```
 store add    <slug> <name>
-store list
+store list   [<prefix>]
 store show   <slug>
 store update <slug>                Prompt for new name
 store delete <slug>

@@ -64,6 +64,47 @@ def test_list_captures_stdout(shell, capsys):
     assert "acme: Acme Corp" in out
 
 
+def test_list_with_prefix_filters(shell, capsys):
+    """`<entity> list <prefix>` lists only slugs starting with the prefix."""
+    shell.onecmd("producer add valio 'Valio'")
+    shell.onecmd("producer add vaasan 'Vaasan'")
+    shell.onecmd("producer add atria 'Atria'")
+    capsys.readouterr()
+
+    shell.onecmd("producer list va")
+
+    out = capsys.readouterr().out
+    assert "valio" in out
+    assert "vaasan" in out
+    assert "atria" not in out
+
+
+def test_list_prefix_is_case_insensitive(shell, capsys):
+    """The prefix is normalized, so uppercase input matches lowercased slugs."""
+    shell.onecmd("store add lidl 'Lidl'")
+    shell.onecmd("store add prisma 'Prisma'")
+    capsys.readouterr()
+
+    shell.onecmd("store list L")
+
+    out = capsys.readouterr().out
+    assert "lidl" in out
+    assert "prisma" not in out
+
+
+def test_list_without_prefix_still_lists_all(shell, capsys):
+    """Omitting the optional prefix keeps the original list-everything behavior."""
+    shell.onecmd("product add milk 'Milk'")
+    shell.onecmd("product add bread 'Bread'")
+    capsys.readouterr()
+
+    shell.onecmd("product list")
+
+    out = capsys.readouterr().out
+    assert "milk" in out
+    assert "bread" in out
+
+
 def test_update_producer_changes_name(shell, conn):
     shell.onecmd("producer add acme 'Acme Corp'")
 

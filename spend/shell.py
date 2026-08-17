@@ -133,7 +133,7 @@ commands: dict[str, dict[str, CommandSpec]] = {
         },
         "list": {
             "handler": producers.do_list_producers,
-            "args": [],
+            "args": ["prefix?"],
             "transaction": False,
         },
         "show": {
@@ -160,7 +160,7 @@ commands: dict[str, dict[str, CommandSpec]] = {
         },
         "list": {
             "handler": products.do_list_products,
-            "args": [],
+            "args": ["prefix?"],
             "transaction": False,
         },
         "show": {
@@ -187,7 +187,7 @@ commands: dict[str, dict[str, CommandSpec]] = {
         },
         "list": {
             "handler": stores.do_list_stores,
-            "args": [],
+            "args": ["prefix?"],
             "transaction": False,
         },
         "show": {
