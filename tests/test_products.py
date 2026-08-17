@@ -3,6 +3,8 @@ import pytest
 from spend.producers import insert_producer, select_producer
 from spend.products import (
     delete_product,
+    do_add_product,
+    do_show_product,
     insert_product,
     require_product,
     select_product,
@@ -76,3 +78,22 @@ def test_require_product_found(conn):
 def test_require_product_raises(conn):
     with pytest.raises(ValueError, match="Unknown product: nope"):
         require_product(conn, to_slug("nope"))
+
+
+def test_do_show_product_prints_details(conn, capsys):
+    """Regression: select_product aliases columns as product_slug/product_name,
+    so do_show_product must read those aliases, not slug/name."""
+    insert_producer(conn, to_slug("valio"), "Valio")
+    do_add_product(conn, to_slug("maito"), "Maito 1 l", to_slug("valio"))
+
+    do_show_product(conn, to_slug("maito"))
+
+    out = capsys.readouterr().out
+    assert "maito" in out
+    assert "Maito 1 l" in out
+    assert "valio" in out
+
+
+def test_do_show_product_missing_warns(conn, caplog):
+    do_show_product(conn, to_slug("nope"))
+    assert "nope" in caplog.text

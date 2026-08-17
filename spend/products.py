@@ -114,8 +114,8 @@ def do_show_product(conn: sqlite3.Connection, slug: Slug) -> None:
     """Show details of one product in the database."""
     product = select_product(conn, slug)
     if product is not None:
-        product_slug = product["slug"]
-        product_name = product["name"]
+        product_slug = product["product_slug"]
+        product_name = product["product_name"]
         producer_slug = product["producer_slug"]
         print(f"{product_slug}: {product_name}, producer: {producer_slug}")
     else:
