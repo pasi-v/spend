@@ -440,3 +440,9 @@ class SpendShell(cmd.Cmd):
     def do_exit(_: str) -> bool:
         """Stop spending and exit."""
         return True
+
+    @staticmethod
+    def do_EOF(_: str) -> bool:
+        """Exit on end-of-file (Ctrl-D)."""
+        print()  # move off the prompt line, since Ctrl-D prints no newline
+        return True

@@ -295,3 +295,11 @@ def test_product_update_prompt_completes_producers(shell, conn, monkeypatch):
     shell.onecmd("product update bread 'Sourdough'")
 
     assert captured["match"] == "acme"
+
+
+def test_eof_signals_exit(shell, capsys):
+    """Ctrl-D reaches the shell as the line "EOF"; it exits and ends the line."""
+    stop = shell.onecmd("EOF")
+
+    assert stop is True
+    assert capsys.readouterr().out == "\n"
