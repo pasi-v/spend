@@ -11,15 +11,16 @@ Move all I/O from domain functions to shell.py.  They only validate data and cal
 
 ## Nice to have
 
-Add readline auto-complete for sub-commands, like `producer <TAB>` would offer `add`, `list` etc.
-
-Add readline auto-complete for slugs, like `producer show va<TAB>` would offer every producer starting with `va` as completion.
+_(nothing queued)_
 
 
 ## Experiments
 
-Test when to read database when auto-completing:
+Readline auto-completion is now implemented (sub-commands and slugs, plus the
+interactive voucher-line and producer prompts). It re-reads the database on
+each completion request — the "every time a completion is requested" option
+below — which is simplest and always correct. Revisit only if it becomes slow:
 
-* at the beginning with some in-memory data structure book keeping during running
-* every time a completion is requested
-* re-read after each slug modification (add, delete, update)
+* ~~at the beginning with some in-memory data structure book keeping during running~~
+* **every time a completion is requested** ← current approach
+* ~~re-read after each slug modification (add, delete, update)~~

@@ -44,6 +44,24 @@ Examples:
 Inside the shell, type `help` or `?` to list commands, or `help <command>`
 for details. Exit with `quit` or `exit`.
 
+### Tab completion
+
+Press <kbd>Tab</kbd> to complete sub-commands and existing slugs:
+
+```
+producer <TAB>          → add  delete  list  show  update
+producer show va<TAB>   → every producer slug starting with "va"
+voucher add 2026-01-01 <TAB>   → completes the store slug
+```
+
+Completion also works at the interactive prompts — the per-line
+`<product_slug> <amount>` entry during `voucher add`, and the producer-slug
+prompt during `product update`. Suggestions are read live from the database
+on each keypress, so newly added slugs are offered immediately.
+
+Completion relies on `readline`. It works with both GNU readline and the
+libedit build shipped with macOS system Python.
+
 ## Commands
 
 All entity commands follow the same shape: `<entity> <action> [args...]`.

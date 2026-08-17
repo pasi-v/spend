@@ -2,7 +2,8 @@ import cmd
 import logging
 import shlex
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import TypedDict
@@ -10,9 +11,56 @@ from typing import TypedDict
 from . import producers, products, stores, vouchers
 from .slug import Slug, to_slug
 
+try:
+    import readline
+except ImportError:  # pragma: no cover - readline unavailable (e.g. Windows)
+    readline = None  # type: ignore[assignment]
+
 DATE_FORMAT = "%Y-%m-%d"
 
 logger = logging.getLogger(__name__)
+
+# Maps an argument name (from a command's "args" spec, "?" stripped) to the
+# function that lists existing rows for tab-completion of that argument. Only
+# names ending in "_slug" are completable; the same three sources serve every
+# command, so `voucher add <date> <store_slug>` completes stores, `product add
+# <slug> <name> <producer_slug?>` completes producers, and so on.
+CompletionSource = Callable[[sqlite3.Connection], list[sqlite3.Row]]
+COMPLETION_SOURCES: dict[str, CompletionSource] = {
+    "producer_slug": producers.select_producers,
+    "product_slug": products.select_products,
+    "store_slug": stores.select_stores,
+}
+
+
+@contextmanager
+def slug_completion(slugs: list[str]) -> Iterator[None]:
+    """Temporarily install a readline completer over a fixed slug list.
+
+    Used to bring tab-completion to the bare `input()` prompts (voucher lines,
+    the producer-slug prompt) that bypass cmd.Cmd's own completion machinery.
+    The previous completer is restored on exit; a no-op when readline is
+    unavailable.
+    """
+    if readline is None:
+        yield
+        return
+
+    def complete(text: str, state: int) -> str | None:
+        matches = [s for s in slugs if s.startswith(text)]
+        return matches[state] if state < len(matches) else None
+
+    previous = readline.get_completer()
+    previous_delims = readline.get_completer_delims()
+    readline.set_completer(complete)
+    # Break tokens only on whitespace, so a dash in a slug (e.g. "valio-oy")
+    # is not treated as a word boundary mid-completion.
+    readline.set_completer_delims(" \t\n")
+    try:
+        yield
+    finally:
+        readline.set_completer(previous)
+        readline.set_completer_delims(previous_delims)
 
 
 def voucher_add(conn: sqlite3.Connection, date_str: str, store_slug: Slug) -> None:
@@ -63,7 +111,9 @@ def voucher_delete(conn: sqlite3.Connection, id_str: str) -> None:
 def product_update(conn: sqlite3.Connection,
                    product_slug: Slug,
                    product_name: str) -> None:
-    raw = input("Enter new producer slug (empty to set null): ").strip()
+    producer_slugs = [row["slug"] for row in producers.select_producers(conn)]
+    with slug_completion(producer_slugs):
+        raw = input("Enter new producer slug (empty to set null): ").strip()
     producer_slug: Slug | None = to_slug(raw) if raw else None
     products.do_update_product(conn, product_slug, product_name, producer_slug)
 
@@ -189,27 +239,29 @@ def run_tx(conn: sqlite3.Connection, fn: Callable[..., None], *args: str) -> Non
 def collect_voucher_lines(conn: sqlite3.Connection) -> list[tuple[Slug, Decimal]]:
     lines = []
     print("Adding voucher lines: <product_slug> <amount in €.cc> (empty line to end)")
-    while True:
-        line = input()
-        if line == "":
-            break
-        parts = line.split()
-        if len(parts) < 2:
-            print("usage: <product_slug> <amount in €.cc>")
-            continue
-        product_slug = to_slug(parts[0])
-        try:
-            products.require_product(conn, product_slug)
-        except ValueError as e:
-            logger.error("%s", e)
-            continue
-        amount_str = parts[1]
-        try:
-            amount = Decimal(amount_str)
-        except InvalidOperation:
-            logger.error("Invalid amount: %s.  Use '123.45'.", amount_str)
-            continue
-        lines.append((product_slug, amount))
+    product_slugs = [row["slug"] for row in products.select_products(conn)]
+    with slug_completion(product_slugs):
+        while True:
+            line = input()
+            if line == "":
+                break
+            parts = line.split()
+            if len(parts) < 2:
+                print("usage: <product_slug> <amount in €.cc>")
+                continue
+            product_slug = to_slug(parts[0])
+            try:
+                products.require_product(conn, product_slug)
+            except ValueError as e:
+                logger.error("%s", e)
+                continue
+            amount_str = parts[1]
+            try:
+                amount = Decimal(amount_str)
+            except InvalidOperation:
+                logger.error("Invalid amount: %s.  Use '123.45'.", amount_str)
+                continue
+            lines.append((product_slug, amount))
     return lines
 
 
@@ -231,6 +283,74 @@ class SpendShell(cmd.Cmd):
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__()
         self.conn = conn
+
+    def preloop(self) -> None:
+        # cmd.cmdloop only binds "tab: complete", which libedit (the readline
+        # shim on macOS) ignores. Bind the libedit way so Tab completes there
+        # too. Harmless when readline is missing.
+        if readline is None:
+            return
+        if "libedit" in (readline.__doc__ or ""):
+            readline.parse_and_bind("bind ^I rl_complete")
+        else:
+            readline.parse_and_bind("tab: complete")
+        # Default delims include "-", which would split a dashed slug
+        # ("valio-oy") into two completion tokens. Our commands are
+        # whitespace-separated (dispatch uses shlex/split), so break on
+        # whitespace only.
+        readline.set_completer_delims(" \t\n")
+
+    def _complete(
+        self, entity_name: str, text: str, line: str, begidx: int
+    ) -> list[str]:
+        """Complete a subcommand or a slug argument for an entity command.
+
+        Driven entirely by the `commands` metadata: position 1 completes the
+        subcommand; later positions complete against COMPLETION_SOURCES when the
+        matching arg name ends in "_slug", and offer nothing otherwise.
+        """
+        entity_commands = commands[entity_name]
+        preceding = line[:begidx].split()  # finished tokens before the cursor
+        pos = len(preceding)               # index of the token being completed
+
+        if pos <= 1:  # completing the subcommand itself
+            return [s for s in entity_commands if s.startswith(text)]
+
+        sub = entity_commands.get(preceding[1].lower())
+        if sub is None:
+            return []
+
+        arg_index = pos - 2
+        if arg_index >= len(sub["args"]):
+            return []
+
+        name = sub["args"][arg_index].rstrip("?")
+        source = COMPLETION_SOURCES.get(name)
+        if source is None:  # non-slug arg (e.g. a name or date) — no suggestions
+            return []
+
+        rows = source(self.conn)
+        return [row["slug"] for row in rows if row["slug"].startswith(text)]
+
+    def complete_producer(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        return self._complete("producer", text, line, begidx)
+
+    def complete_product(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        return self._complete("product", text, line, begidx)
+
+    def complete_store(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        return self._complete("store", text, line, begidx)
+
+    def complete_voucher(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        return self._complete("voucher", text, line, begidx)
 
     def dispatch(self, entity_name: str, arg: str) -> None:
         args = shlex.split(arg)
